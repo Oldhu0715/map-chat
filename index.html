@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全球即時通訊 (全頻道解鎖版)</title>
+    <title>全球通訊 (無限制廣播版)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
@@ -12,7 +12,7 @@
         body { margin: 0; padding: 0; font-family: "Segoe UI", sans-serif; background: #e5e3df; overflow: hidden; }
         #world-map { height: 100vh; width: 100%; background: #e5e3df; }
 
-        /* 頂部廣播播放器 */
+        /* 頂部播放器 */
         #radio-player-bar {
             position: fixed; top: 0; left: 0; width: 100%; height: 60px;
             background: rgba(20, 20, 20, 0.95);
@@ -21,19 +21,11 @@
             padding: 0 10px; box-sizing: border-box;
             z-index: 3000; color: white;
         }
-        .station-info { display: flex; flex-direction: column; max-width: 40%; }
+        .station-info { display: flex; flex-direction: column; max-width: 50%; }
         .station-name { font-weight: bold; font-size: 14px; color: #ff0055; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .station-country { font-size: 11px; color: #aaa; }
-        audio { height: 30px; max-width: 120px; }
+        audio { height: 30px; max-width: 150px; }
 
-        /* 控制開關區域 (新增) */
-        #radio-controls {
-            display: flex; align-items: center; gap: 10px; font-size: 12px; color: #00ffea;
-        }
-        .toggle-label { display: flex; align-items: center; cursor: pointer; }
-        .toggle-checkbox { margin-right: 5px; accent-color: #ff0055; }
-
-        /* 讀取提示 */
         #loading-badge {
             position: fixed; top: 70px; right: 10px;
             background: rgba(0,0,0,0.8); color: #00ffea;
@@ -41,7 +33,6 @@
             z-index: 3000; display: none; border: 1px solid #00ffea;
         }
 
-        /* 聊天面板 */
         #chat-panel {
             position: fixed; top: 70px; left: 20px;
             width: 320px; height: 55vh;
@@ -54,24 +45,24 @@
             transition: all 0.3s ease;
         }
         #chat-panel.minimized { height: 45px; overflow: hidden; }
-        
         #panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; cursor: pointer; padding-bottom: 5px; border-bottom: 1px solid #444; }
         #panel-title { font-size: 16px; font-weight: bold; color: white; }
         #toggle-icon { font-size: 12px; color: #00ffea; border: 1px solid #00ffea; padding: 2px 6px; border-radius: 4px; }
-        
+        #profile-section { padding-bottom: 5px; margin-bottom: 5px; font-size: 12px; }
+        .input-group { display: flex; gap: 5px; margin-top: 5px; }
+        #name-input { flex: 1; padding: 5px; background: #333; border: 1px solid #555; color: #00ffea; font-weight: bold; font-size: 12px;}
+        #update-name-btn { background: #007bff; color: white; border: none; padding: 5px 10px; cursor: pointer; font-size: 12px;}
         #chat-history { flex: 1; overflow-y: auto; margin-bottom: 5px; font-size: 13px; }
         .msg { margin-bottom: 4px; padding-bottom: 2px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .msg-name { color: #00ffea; font-weight: bold; }
         .msg-text { color: white; }
         .msg-sys { color: #aaa; font-style: italic; font-size: 11px; }
         .gps-info { font-size: 10px; color: #f39c12; margin-top: 2px; }
-        
         #input-area { display: flex; gap: 5px; }
         #msg-input { flex: 1; padding: 8px; border: none; border-radius: 4px; background: #333; color: white; font-size: 14px; }
         .user-label { background-color: #000000; color: #00ffea; border: 2px solid #00ffea; font-size: 12px; font-weight: 900; padding: 2px 6px; border-radius: 4px; white-space: nowrap; box-shadow: 0 0 5px rgba(0,0,0,0.5); text-align: center; }
         .radio-label { background-color: #220011; color: #ff0055; border: 1px solid #ff0055; font-size: 11px; font-weight: bold; padding: 1px 4px; border-radius: 4px; white-space: nowrap; text-align: center; }
         
-        /* 聚合樣式 */
         .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(255, 0, 85, 0.6); }
         .marker-cluster div { background-color: rgba(255, 0, 85, 0.9); color: white; font-weight: bold; }
 
@@ -79,10 +70,8 @@
             #chat-panel { top: auto; left: 0; bottom: 0; width: 100%; height: 35vh; border-radius: 15px 15px 0 0; border-left: none; border-top: 4px solid #00ffea; }
             #chat-panel.minimized { height: 45px; overflow: hidden; }
             #toggle-icon { display: block; }
-            #radio-player-bar { height: auto; flex-wrap: wrap; padding: 5px; }
-            .station-info { width: 100%; max-width: 100%; text-align: center; margin-bottom: 5px; }
-            audio { width: 100%; max-width: 100%; }
-            #radio-controls { width: 100%; justify-content: center; margin-top: 5px; }
+            #radio-player-bar { height: 50px; }
+            .station-name { font-size: 12px; }
         }
     </style>
 </head>
@@ -90,21 +79,13 @@
 
     <div id="radio-player-bar">
         <div class="station-info">
-            <div class="station-name" id="current-station">請移動地圖搜尋</div>
-            <div class="station-country" id="current-country">區域搜尋模式</div>
+            <div class="station-name" id="current-station">請移動地圖搜尋電台</div>
+            <div class="station-country" id="current-country">全頻段解鎖模式</div>
         </div>
-        
-        <div id="radio-controls">
-            <label class="toggle-label">
-                <input type="checkbox" id="https-toggle" class="toggle-checkbox" checked onchange="reloadStations()">
-                只顯示可播放 (HTTPS)
-            </label>
-        </div>
-
         <audio id="audio-player" controls autoplay playsinline></audio>
     </div>
 
-    <div id="loading-badge">📡 搜尋訊號中...</div>
+    <div id="loading-badge">📡 正在搜尋此區域...</div>
     <div id="world-map"></div>
 
     <div id="chat-panel">
@@ -112,9 +93,15 @@
             <div id="panel-title">🌐 全球訊號站 <span id="gps-status" class="gps-info" style="display:inline; margin-left:5px;">(定位中...)</span></div>
             <div id="toggle-icon">收起 ▼</div>
         </div>
+        <div id="profile-section">
+            <div class="input-group">
+                <input type="text" id="name-input" placeholder="名字">
+                <button id="update-name-btn">改名</button>
+            </div>
+        </div>
         <div id="chat-history">
             <div class="msg-sys">系統連線中...</div>
-            <div class="msg-sys" style="color: #ff0055;">★ 小撇步：若要看到更多台灣電台，請取消勾選上方的「只顯示可播放」。</div>
+            <div class="msg-sys" style="color: #ff0055;">★ 已啟用「伺服器轉播技術」，可收聽傳統 HTTP 電台。</div>
         </div>
         <div id="input-area">
             <input type="text" id="msg-input" placeholder="輸入訊息..." autocomplete="off">
@@ -137,7 +124,7 @@
 
         var map = L.map('world-map', {
             minZoom: 2, maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 1.0, zoomControl: false 
-        }).setView([23.5, 121], 7); // 預設看台灣
+        }).setView([23.5, 121], 7);
 
         if (window.innerWidth > 768) L.control.zoom({ position: 'topright' }).addTo(map);
 
@@ -160,13 +147,7 @@
             iconSize: [24, 24], iconAnchor: [12, 12]
         });
 
-        // --- 核心：重整電台 ---
-        function reloadStations() {
-            radioCluster.clearLayers();
-            loadedStationIds.clear();
-            loadStationsInView();
-        }
-
+        // --- 載入電台 (移除 HTTPS 限制) ---
         function loadStationsInView() {
             var bounds = map.getBounds();
             var north = bounds.getNorth();
@@ -176,30 +157,17 @@
 
             document.getElementById('loading-badge').style.display = 'block';
 
-            // 檢查開關狀態
-            var onlyHttps = document.getElementById('https-toggle').checked;
+            // 這裡不再限制 is_https=true
+            var apiUrl = `https://all.api.radio-browser.info/json/stations/search?limit=300&hidebroken=true&lat_min=${south}&lat_max=${north}&long_min=${west}&long_max=${east}`;
             
-            // 使用 all.api (自動負載平衡) 比較穩
-            // limit 加大到 400，如果不限 HTTPS，台灣會有很多
-            var apiUrl = `https://all.api.radio-browser.info/json/stations/search?limit=400&hidebroken=true&lat_min=${south}&lat_max=${north}&long_min=${west}&long_max=${east}`;
-            
-            if (onlyHttps) {
-                apiUrl += "&is_https=true"; // 只抓加密的
-            }
-
             fetch(apiUrl)
             .then(res => res.json())
             .then(stations => {
                 addStationsToMap(stations);
                 document.getElementById('loading-badge').style.display = 'none';
-                if (stations.length > 0) {
-                    document.getElementById('current-country').innerText = `此區域發現 ${stations.length} 個電台`;
-                } else {
-                    document.getElementById('current-country').innerText = `此區域無符合電台`;
-                }
+                if (stations.length > 0) document.getElementById('current-country').innerText = `此區域發現 ${stations.length} 個電台`;
             })
             .catch(err => {
-                console.error(err);
                 document.getElementById('loading-badge').style.display = 'none';
             });
         }
@@ -226,38 +194,32 @@
             searchTimeout = setTimeout(loadStationsInView, 1000);
         });
 
-        // 預先載入一次
-        setTimeout(loadStationsInView, 1000);
-
+        // --- 核心修改：透過伺服器轉播 ---
         function playRadio(name, country, url) {
             var player = document.getElementById('audio-player');
             var nameDisplay = document.getElementById('current-station');
             var countryDisplay = document.getElementById('current-country');
-            var isHttpsPage = location.protocol === 'https:';
-            var isHttpStation = url.startsWith('http:');
 
-            player.src = url;
-            nameDisplay.innerText = "讀取中...";
+            // 如果是 HTTP，就走我們的伺服器中轉 (Proxy)
+            // 如果是 HTTPS，直接播就好 (省伺服器流量)
+            var finalUrl = url;
+            if (url.startsWith('http://')) {
+                // 將網址編碼後傳給我們的 /radio-proxy 路由
+                finalUrl = '/radio-proxy?url=' + encodeURIComponent(url);
+            }
+
+            player.src = finalUrl;
+            nameDisplay.innerText = "緩衝中...";
             
-            // 嘗試播放
             player.play().then(() => {
                 nameDisplay.innerText = "🎵 " + name;
                 countryDisplay.innerText = country;
             }).catch(e => {
-                // 播放失敗，分析原因
                 nameDisplay.innerText = "❌ 播放失敗";
-                
-                if (isHttpsPage && isHttpStation) {
-                    countryDisplay.innerText = "瀏覽器阻擋了不安全的 HTTP 訊號";
-                    alert(`【無法播放警告】\n\n這個電台 (${name}) 使用的是舊版 HTTP 訊號，而您的網站是安全的 HTTPS。\n\n瀏覽器為了安全，預設會封鎖聲音。\n\n解決方法 (電腦版)：\n請點擊網址列旁邊的「鎖頭」或「設定」圖示，找到「網站設定」，將「不安全內容 (Insecure Content)」設為「允許 (Allow)」。`);
-                } else {
-                    countryDisplay.innerText = "電台目前離線或格式不支援";
-                }
-                console.error(e);
+                countryDisplay.innerText = "訊號源可能已離線";
             });
         }
 
-        // --- GPS 與聊天 (保持功能) ---
         window.onload = function() {
             if (navigator.geolocation) {
                 var options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
@@ -284,6 +246,7 @@
         socket.on('yourNameIs', function(name) { document.getElementById('name-input').value = name; });
         socket.on('history', function(h) { h.forEach(d => d.isSystem ? addSystemMsg(d.text) : addUserMsg(d.name, d.text)); var b=document.getElementById('chat-history'); b.scrollTop=b.scrollHeight; });
         function updateName() { var n=document.getElementById('name-input').value; if(n.trim()) socket.emit('changeName', n); }
+        document.getElementById('update-name-btn').addEventListener('click', updateName);
         map.on('click', function(e) { socket.emit('playerMove', { lat: e.latlng.lat, lng: e.latlng.lng }); map.panTo(e.latlng); if(accuracyCircle){ accuracyCircle.setLatLng(e.latlng); accuracyCircle.setRadius(5); } });
         socket.on('updateMap', function(u) { for(var i in markers) map.removeLayer(markers[i]); markers={}; for(var i in u) { var m=L.marker([u[i].lat, u[i].lng]).addTo(map); m.bindTooltip(u[i].name, { permanent:true, direction:'top', className:'user-label', offset:[0,-40] }); markers[i]=m; } });
         socket.on('chatMessage', function(d) { if(d.isSystem) addSystemMsg(d.text); else { addUserMsg(d.name, d.text); if(markers[d.id]) { markers[d.id].bindPopup(d.text).openPopup(); setTimeout(()=>markers[d.id]&&markers[d.id].closePopup(),3000); } } });
