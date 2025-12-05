@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全球通訊 (訊號加強版)</title>
+    <title>全球通訊 (國家頻道版)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
@@ -12,37 +12,47 @@
         body { margin: 0; padding: 0; font-family: "Segoe UI", sans-serif; background: #e5e3df; overflow: hidden; }
         #world-map { height: 100vh; width: 100%; background: #e5e3df; }
 
-        /* 頂部播放器 */
+        /* 頂部播放器 & 控制列 */
         #radio-player-bar {
-            position: fixed; top: 0; left: 0; width: 100%; height: 60px;
+            position: fixed; top: 0; left: 0; width: 100%; height: auto; min-height: 60px;
             background: rgba(20, 20, 20, 0.95);
             border-bottom: 2px solid #ff0055;
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 10px; box-sizing: border-box;
+            display: flex; flex-direction: column; 
+            padding: 5px 10px; box-sizing: border-box;
             z-index: 3000; color: white;
         }
-        .station-info { display: flex; flex-direction: column; max-width: 40%; }
+        
+        /* 上半部：播放資訊 */
+        .player-top { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .station-info { display: flex; flex-direction: column; max-width: 50%; }
         .station-name { font-weight: bold; font-size: 14px; color: #ff0055; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .station-country { font-size: 11px; color: #aaa; }
-        audio { height: 30px; max-width: 120px; }
+        audio { height: 30px; max-width: 140px; }
 
-        /* 手動搜尋按鈕 (新增) */
-        #force-search-btn {
-            background: #ff0055; color: white; border: none; padding: 5px 10px; 
-            border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 10px;
-            white-space: nowrap;
+        /* 下半部：國家按鈕 (新增) */
+        .country-buttons {
+            display: flex; gap: 8px; margin-top: 5px; overflow-x: auto; padding-bottom: 5px; width: 100%;
         }
+        .c-btn {
+            background: #333; border: 1px solid #555; color: white; 
+            padding: 4px 10px; border-radius: 15px; font-size: 12px; cursor: pointer; white-space: nowrap;
+        }
+        .c-btn:hover { background: #555; border-color: #ff0055; }
+        .c-btn.active { background: #ff0055; border-color: #ff0055; }
 
+        /* 讀取提示 */
         #loading-badge {
-            position: fixed; top: 70px; right: 10px;
+            position: fixed; top: 85px; right: 10px;
             background: rgba(0,0,0,0.8); color: #00ffea;
             padding: 5px 10px; border-radius: 20px; font-size: 12px;
             z-index: 3000; display: none; border: 1px solid #00ffea;
         }
 
+        /* 聊天面板 */
         #chat-panel {
-            position: fixed; top: 70px; left: 20px;
-            width: 320px; height: 55vh;
+            position: fixed; top: 100px; /* 往下移一點避開按鈕 */
+            left: 20px;
+            width: 320px; height: 50vh;
             background: rgba(0, 0, 0, 0.85);
             border-left: 4px solid #00ffea;
             padding: 10px; color: #ddd;
@@ -77,24 +87,31 @@
             #chat-panel { top: auto; left: 0; bottom: 0; width: 100%; height: 35vh; border-radius: 15px 15px 0 0; border-left: none; border-top: 4px solid #00ffea; }
             #chat-panel.minimized { height: 45px; overflow: hidden; }
             #toggle-icon { display: block; }
-            #radio-player-bar { height: 50px; }
-            .station-name { font-size: 12px; }
-            #force-search-btn { font-size: 10px; padding: 3px 6px; }
+            #radio-player-bar { height: auto; }
         }
     </style>
 </head>
 <body>
 
     <div id="radio-player-bar">
-        <div class="station-info">
-            <div class="station-name" id="current-station">請移動地圖搜尋</div>
-            <div class="station-country" id="current-country">全頻道中轉模式</div>
+        <div class="player-top">
+            <div class="station-info">
+                <div class="station-name" id="current-station">請選擇國家</div>
+                <div class="station-country" id="current-country">準備就緒</div>
+            </div>
+            <audio id="audio-player" controls autoplay playsinline></audio>
         </div>
-        <button id="force-search-btn" onclick="loadStationsInView(true)">強制搜尋</button>
-        <audio id="audio-player" controls autoplay playsinline></audio>
+        <div class="country-buttons">
+            <button class="c-btn" onclick="loadByCountry('TW', '台灣', [23.6, 121])">🇹🇼 台灣</button>
+            <button class="c-btn" onclick="loadByCountry('JP', '日本', [36, 138])">🇯🇵 日本</button>
+            <button class="c-btn" onclick="loadByCountry('US', '美國', [37, -95])">🇺🇸 美國</button>
+            <button class="c-btn" onclick="loadByCountry('CN', '中國', [35, 104])">🇨🇳 中國</button>
+            <button class="c-btn" onclick="loadByCountry('HK', '香港', [22.3, 114.1])">🇭🇰 香港</button>
+            <button class="c-btn" onclick="loadStationsInView(true)">🌍 搜尋目前地圖範圍</button>
+        </div>
     </div>
 
-    <div id="loading-badge">📡 搜尋訊號中...</div>
+    <div id="loading-badge">📡 正在從資料庫撈取...</div>
     <div id="world-map"></div>
 
     <div id="chat-panel">
@@ -110,7 +127,7 @@
         </div>
         <div id="chat-history">
             <div class="msg-sys">系統連線中...</div>
-            <div class="msg-sys" style="color: #ff0055;">★ 若地圖無顯示電台，請點擊上方的「強制搜尋」按鈕。</div>
+            <div class="msg-sys" style="color: #ff0055;">★ 點擊上方的「🇹🇼 台灣」按鈕，保證載入台灣電台！</div>
         </div>
         <div id="input-area">
             <input type="text" id="msg-input" placeholder="輸入訊息..." autocomplete="off">
@@ -131,7 +148,6 @@
             else { panel.classList.add('minimized'); icon.innerText = "展開 ▲"; isMinimized = true; }
         }
 
-        // 預設視野設在台灣，方便你檢查
         var map = L.map('world-map', {
             minZoom: 2, maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 1.0, zoomControl: false 
         }).setView([23.6, 121], 7);
@@ -146,8 +162,6 @@
         var accuracyCircle = null;
         var firstLoad = true;
         var loadedStationIds = new Set();
-        var searchTimeout = null;
-
         var radioCluster = L.markerClusterGroup({ maxClusterRadius: 50, disableClusteringAtZoom: 13 });
         map.addLayer(radioCluster);
 
@@ -157,50 +171,73 @@
             iconSize: [24, 24], iconAnchor: [12, 12]
         });
 
-        // --- 電台載入核心 ---
-        function loadStationsInView(isForce = false) {
-            var bounds = map.getBounds();
-            var north = bounds.getNorth();
-            var south = bounds.getSouth();
-            var east = bounds.getEast();
-            var west = bounds.getWest();
-
+        // --- 功能 A：依國家代碼強制載入 (最穩) ---
+        function loadByCountry(code, name, latlng) {
             document.getElementById('loading-badge').style.display = 'block';
-
-            // 如果是強制搜尋，我們清空目前的，重新抓
-            if (isForce) {
-                radioCluster.clearLayers();
-                loadedStationIds.clear();
-            }
-
-            // 改用 de1.api (德國伺服器) 比較穩
-            // limit 加大到 1000
-            // is_https 移除，確保可以抓到 HTTP 電台
-            var apiUrl = `https://de1.api.radio-browser.info/json/stations/search?limit=1000&hidebroken=true&lat_min=${south}&lat_max=${north}&long_min=${west}&long_max=${east}`;
+            document.getElementById('current-country').innerText = `正在下載 ${name} 電台清單...`;
             
+            // 地圖飛過去
+            if (latlng) map.setView(latlng, 7);
+
+            // 清空舊的
+            radioCluster.clearLayers();
+            loadedStationIds.clear();
+
+            // 使用 bycountrycodeexact 強制搜尋該國
+            // 改用 de1.api, 並隨機切換伺服器避免當機
+            var servers = ['de1', 'fr1', 'at1'];
+            var server = servers[Math.floor(Math.random() * servers.length)];
+            var apiUrl = `https://${server}.api.radio-browser.info/json/stations/bycountrycodeexact/${code}?hidebroken=true&limit=300`;
+
+            fetch(apiUrl)
+            .then(res => res.json())
+            .then(stations => {
+                addStationsToMap(stations, latlng); // 傳入預設座標，給那些沒有座標的電台用
+                document.getElementById('loading-badge').style.display = 'none';
+                document.getElementById('current-country').innerText = `已載入 ${stations.length} 個 ${name} 電台`;
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('loading-badge').style.display = 'none';
+                document.getElementById('current-country').innerText = "載入失敗，請重試";
+            });
+        }
+
+        // --- 功能 B：依地圖範圍搜尋 (自由探索) ---
+        function loadStationsInView(isForce) {
+            var bounds = map.getBounds();
+            var apiUrl = `https://de1.api.radio-browser.info/json/stations/search?limit=300&hidebroken=true&lat_min=${bounds.getSouth()}&lat_max=${bounds.getNorth()}&long_min=${bounds.getWest()}&long_max=${bounds.getEast()}`;
+            
+            document.getElementById('loading-badge').style.display = 'block';
+            if(isForce) { radioCluster.clearLayers(); loadedStationIds.clear(); }
+
             fetch(apiUrl)
             .then(res => res.json())
             .then(stations => {
                 addStationsToMap(stations);
                 document.getElementById('loading-badge').style.display = 'none';
-                if (stations.length > 0) {
-                    document.getElementById('current-country').innerText = `已載入 ${stations.length} 個電台`;
-                } else {
-                    document.getElementById('current-country').innerText = `此區域無電台或伺服器忙碌`;
-                }
+                document.getElementById('current-country').innerText = `地圖範圍內發現 ${stations.length} 個電台`;
             })
             .catch(err => {
-                console.error(err);
                 document.getElementById('loading-badge').style.display = 'none';
-                document.getElementById('current-country').innerText = `連線失敗，請重試`;
             });
         }
 
-        function addStationsToMap(stations) {
+        function addStationsToMap(stations, defaultLatLng) {
+            var count = 0;
             stations.forEach(station => {
                 if (!loadedStationIds.has(station.stationuuid)) {
-                    if (station.geo_lat && station.geo_long) {
-                        var marker = L.marker([station.geo_lat, station.geo_long], {icon: radioIcon})
+                    var lat = station.geo_lat;
+                    var lng = station.geo_long;
+
+                    // 如果電台沒有座標，但我們是按國家按鈕進來的，就把他丟在首都附近隨機位置
+                    if ((!lat || !lng) && defaultLatLng) {
+                        lat = defaultLatLng[0] + (Math.random() - 0.5) * 2;
+                        lng = defaultLatLng[1] + (Math.random() - 0.5) * 2;
+                    }
+
+                    if (lat && lng) {
+                        var marker = L.marker([lat, lng], {icon: radioIcon})
                             .bindTooltip(station.name, { direction: 'top', className: 'radio-label', offset: [0, -12] });
                         
                         marker.on('click', function() {
@@ -208,44 +245,40 @@
                         });
                         radioCluster.addLayer(marker);
                         loadedStationIds.add(station.stationuuid);
+                        count++;
                     }
                 }
             });
+            return count;
         }
-
-        map.on('moveend', function() {
-            if (searchTimeout) clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => loadStationsInView(false), 1000);
-        });
-
-        // 初始化先抓一次
-        setTimeout(() => loadStationsInView(true), 1500);
 
         function playRadio(name, country, url) {
             var player = document.getElementById('audio-player');
             var nameDisplay = document.getElementById('current-station');
             var countryDisplay = document.getElementById('current-country');
-
-            // 轉播邏輯：如果是 HTTP 就走 Proxy
+            
             var finalUrl = url;
             if (url.startsWith('http://')) {
                 finalUrl = '/radio-proxy?url=' + encodeURIComponent(url);
             }
 
             player.src = finalUrl;
-            nameDisplay.innerText = "緩衝中...";
+            nameDisplay.innerText = "緩衝中... " + name;
             
             player.play().then(() => {
                 nameDisplay.innerText = "🎵 " + name;
                 countryDisplay.innerText = country;
             }).catch(e => {
-                nameDisplay.innerText = "❌ 播放失敗";
-                countryDisplay.innerText = "訊號源已失效或逾時";
+                nameDisplay.innerText = "❌ 無法播放";
+                countryDisplay.innerText = "訊號源無回應";
             });
         }
 
         // --- GPS 與聊天 (維持不變) ---
         window.onload = function() {
+            // 預設先載入台灣，讓畫面不要空空的
+            setTimeout(() => loadByCountry('TW', '台灣', [23.6, 121]), 1000);
+
             if (navigator.geolocation) {
                 var options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
                 navigator.geolocation.watchPosition(
@@ -256,7 +289,6 @@
                         else { accuracyCircle = L.circle([lat, lng], { color: '#007bff', fillColor: '#007bff', fillOpacity: 0.1, radius: acc }).addTo(map); }
                         if (firstLoad) { 
                             initConnection(lat, lng); 
-                            map.fitBounds(accuracyCircle.getBounds()); 
                             firstLoad = false; 
                         } else { socket.emit('playerMove', { lat: lat, lng: lng }); }
                     },
