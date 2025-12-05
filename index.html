@@ -114,4 +114,109 @@
                         } else {
                             socket.emit('playerMove', { lat: pos.coords.latitude, lng: pos.coords.longitude });
                             if (accuracy < 100) {
-                                map.setView([pos.coords
+                                map.setView([pos.coords.latitude, pos.coords.longitude], 16); 
+                            }
+                        }
+                    },
+                    (err) => { 
+                        var msg = "定位失敗";
+                        if(err.code == 1) msg = "使用者拒絕提供位置";
+                        document.getElementById('gps-status').innerText = "⚠️ " + msg;
+                        addSystemMsg(msg + "，切換至隨機座標。");
+                        if(firstLoad) {
+                            initConnection(20 + Math.random()*10, 120 + Math.random()*10);
+                            firstLoad = false;
+                        }
+                    },
+                    options
+                );
+            } else {
+                addSystemMsg("瀏覽器不支援定位。");
+                initConnection(25.03, 121.56);
+            }
+        };
+
+        function initConnection(lat, lng) {
+            map.setView([lat, lng], 15);
+            socket.emit('reportLocation', { lat: lat, lng: lng });
+            addSystemMsg("連線成功。");
+        }
+
+        socket.on('yourNameIs', function(name) {
+            document.getElementById('name-input').value = name;
+        });
+
+        socket.on('history', function(historyMessages) {
+            historyMessages.forEach(function(data) {
+                if (data.isSystem) addSystemMsg(data.text);
+                else addUserMsg(data.name, data.text);
+            });
+            var box = document.getElementById('chat-history');
+            box.scrollTop = box.scrollHeight;
+        });
+
+        function updateName() {
+            var newName = document.getElementById('name-input').value;
+            if (newName.trim() !== "") {
+                socket.emit('changeName', newName);
+            }
+        }
+        document.getElementById('update-name-btn').addEventListener('click', updateName);
+        document.getElementById('name-input').addEventListener('keypress', (e) => { if(e.key==='Enter') updateName(); });
+
+        map.on('click', function(e) {
+            socket.emit('playerMove', { lat: e.latlng.lat, lng: e.latlng.lng });
+            map.panTo(e.latlng);
+        });
+
+        socket.on('updateMap', function(allUsers) {
+            for(var id in markers) { map.removeLayer(markers[id]); }
+            markers = {};
+            for (var id in allUsers) {
+                var u = allUsers[id];
+                var marker = L.marker([u.lat, u.lng]).addTo(map);
+                marker.bindTooltip(u.name, { 
+                    permanent: true, direction: 'top', className: 'user-label', offset: [0, -40]
+                });
+                markers[id] = marker;
+            }
+        });
+
+        socket.on('chatMessage', function(data) {
+            if (data.isSystem) {
+                addSystemMsg(data.text);
+            } else {
+                addUserMsg(data.name, data.text);
+                if (markers[data.id]) {
+                    markers[data.id].bindPopup(data.text).openPopup();
+                    setTimeout(() => { if(markers[data.id]) markers[data.id].closePopup(); }, 3000);
+                }
+            }
+        });
+
+        function addSystemMsg(text) {
+            var box = document.getElementById('chat-history');
+            box.innerHTML += `<div class="msg msg-sys">${text}</div>`;
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function addUserMsg(name, text) {
+            var box = document.getElementById('chat-history');
+            box.innerHTML += `
+                <div class="msg">
+                    <span class="msg-name">${name}:</span> 
+                    <span class="msg-text">${text}</span>
+                </div>`;
+            box.scrollTop = box.scrollHeight;
+        }
+
+        var input = document.getElementById('msg-input');
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && input.value.trim() !== "") {
+                socket.emit('sendChat', input.value);
+                input.value = "";
+            }
+        });
+    </script>
+</body>
+</html>
