@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全球即時通訊 (移動+改名版)</title>
+    <title>全球即時通訊 (歷史紀錄版)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { margin: 0; padding: 0; font-family: "Segoe UI", sans-serif; background: #222; overflow: hidden; }
-        
         #world-map { height: 100vh; width: 100%; background: #1a1a1a; }
 
         /* 左側懸浮面板 */
         #chat-panel {
             position: fixed; top: 20px; left: 20px;
             width: 320px; height: 60vh;
-            background: rgba(0, 0, 0, 0.85); /* 加深背景 */
-            border-left: 4px solid #00ffea; /* 螢光邊框 */
+            background: rgba(0, 0, 0, 0.85);
+            border-left: 4px solid #00ffea;
             padding: 15px;
             color: #ddd;
             display: flex; flex-direction: column;
@@ -24,50 +23,28 @@
             box-shadow: 0 0 15px rgba(0, 255, 234, 0.2);
         }
 
-        /* 改名區域 */
-        #profile-section {
-            border-bottom: 1px solid #444;
-            padding-bottom: 10px;
-            margin-bottom: 10px;
-        }
+        #profile-section { border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 10px; }
         .input-group { display: flex; gap: 5px; margin-top: 5px; }
-        #name-input { 
-            flex: 1; padding: 5px; background: #333; border: 1px solid #555; color: #00ffea; font-weight: bold; 
-        }
-        #update-name-btn {
-            background: #007bff; color: white; border: none; padding: 5px 10px; cursor: pointer;
-        }
+        #name-input { flex: 1; padding: 5px; background: #333; border: 1px solid #555; color: #00ffea; font-weight: bold; }
+        #update-name-btn { background: #007bff; color: white; border: none; padding: 5px 10px; cursor: pointer; }
 
-        /* 聊天記錄 */
-        #chat-history {
-            flex: 1; overflow-y: auto; margin-bottom: 10px; font-size: 14px;
-        }
+        #chat-history { flex: 1; overflow-y: auto; margin-bottom: 10px; font-size: 14px; }
         .msg { margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .msg-name { color: #00ffea; font-weight: bold; font-size: 13px; }
         .msg-text { color: white; margin-top: 2px; }
         .msg-sys { color: #888; font-style: italic; font-size: 12px; }
 
-        /* 底部發送區 */
         #input-area { display: flex; gap: 5px; }
         #msg-input { flex: 1; padding: 10px; border: none; border-radius: 4px; background: #333; color: white; }
         
-        /* --- 名字標籤樣式 (高對比) --- */
+        /* 名字標籤與氣泡 */
         .user-label {
-            background-color: #000000;      /* 純黑底 */
-            color: #00ffea;                 /* 螢光青色字 */
-            border: 2px solid #00ffea;      /* 螢光邊框 */
-            font-size: 13px;
-            font-weight: 900;               /* 特粗體 */
-            padding: 3px 8px;
-            border-radius: 4px;
-            white-space: nowrap;
-            box-shadow: 0 0 5px #00ffea;    /* 發光效果 */
-            text-align: center;
+            background-color: #000000; color: #00ffea; border: 2px solid #00ffea;
+            font-size: 13px; font-weight: 900; padding: 3px 8px; border-radius: 4px;
+            white-space: nowrap; box-shadow: 0 0 5px #00ffea; text-align: center;
         }
-        /* 地圖氣泡 */
         .leaflet-popup-content-wrapper { background: rgba(0,0,0,0.9); color: white; border: 1px solid #00ffea; }
         .leaflet-popup-tip { background: rgba(0,0,0,0.9); }
-
     </style>
 </head>
 <body>
@@ -88,7 +65,7 @@
         </div>
 
         <div id="chat-history">
-            <div class="msg-sys">正在定位通訊位置...</div>
+            <div class="msg-sys">正在連結通訊衛星...</div>
         </div>
         
         <div id="input-area">
@@ -101,8 +78,6 @@
 
     <script>
         var socket = io();
-        
-        // 使用暗色地圖
         var map = L.map('world-map').setView([20, 0], 2);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; CARTO', maxZoom: 19
@@ -110,7 +85,6 @@
 
         var markers = {};
 
-        // 1. 自動定位邏輯
         window.onload = function() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
@@ -129,15 +103,29 @@
         function initConnection(lat, lng) {
             map.setView([lat, lng], 13);
             socket.emit('reportLocation', { lat: lat, lng: lng });
-            addSystemMsg("連線成功。點擊地圖可移動位置。");
+            addSystemMsg("連線成功。");
         }
 
-        // 2. 接收系統分配的初始名字
         socket.on('yourNameIs', function(name) {
             document.getElementById('name-input').value = name;
         });
 
-        // 3. 功能：改名
+        // --- 1. 新增：接收歷史訊息 ---
+        socket.on('history', function(historyMessages) {
+            // 把收到的歷史訊息一條一條顯示出來
+            historyMessages.forEach(function(data) {
+                if (data.isSystem) {
+                    addSystemMsg(data.text);
+                } else {
+                    addUserMsg(data.name, data.text);
+                }
+            });
+            // 捲動到底部
+            var box = document.getElementById('chat-history');
+            box.scrollTop = box.scrollHeight;
+        });
+        // --------------------------
+
         function updateName() {
             var newName = document.getElementById('name-input').value;
             if (newName.trim() !== "") {
@@ -147,40 +135,24 @@
         document.getElementById('update-name-btn').addEventListener('click', updateName);
         document.getElementById('name-input').addEventListener('keypress', (e) => { if(e.key==='Enter') updateName(); });
 
-
-        // 4. 功能：點擊移動
         map.on('click', function(e) {
-            // 發送新座標給伺服器
             socket.emit('playerMove', { lat: e.latlng.lat, lng: e.latlng.lng });
-            // 自己本地也先飛過去 (視覺回饋)
             map.panTo(e.latlng);
         });
 
-
-        // 5. 更新地圖上的所有人
         socket.on('updateMap', function(allUsers) {
             for(var id in markers) { map.removeLayer(markers[id]); }
             markers = {};
-
             for (var id in allUsers) {
                 var u = allUsers[id];
-                
-                // 建立地標
                 var marker = L.marker([u.lat, u.lng]).addTo(map);
-                
-                // 綁定超顯眼的名字標籤
                 marker.bindTooltip(u.name, { 
-                    permanent: true, 
-                    direction: 'top',
-                    className: 'user-label',
-                    offset: [0, -40]
+                    permanent: true, direction: 'top', className: 'user-label', offset: [0, -40]
                 });
-                
                 markers[id] = marker;
             }
         });
 
-        // 6. 聊天處理
         socket.on('chatMessage', function(data) {
             if (data.isSystem) {
                 addSystemMsg(data.text);
@@ -209,7 +181,6 @@
             box.scrollTop = box.scrollHeight;
         }
 
-        // 發送訊息
         var input = document.getElementById('msg-input');
         input.addEventListener('keypress', function(e) {
             if (e.key === 'Enter' && input.value.trim() !== "") {
@@ -217,7 +188,6 @@
                 input.value = "";
             }
         });
-
     </script>
 </body>
 </html>

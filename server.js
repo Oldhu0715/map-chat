@@ -5,12 +5,17 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
 
+// 使用 Render 的 Port 或預設 3000
+const port = process.env.PORT || 3000;
+
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
-// 儲存線上使用者
+// --- 資料儲存區 ---
 let users = {};
+let messageHistory = []; // 1. 新增：用來存歷史訊息的陣列
+const MAX_HISTORY = 50;  // 設定最多存 50 句，避免伺服器爆掉
 
 function generateName() {
     return "訪客-" + Math.floor(Math.random() * 1000);
@@ -19,19 +24,22 @@ function generateName() {
 io.on('connection', (socket) => {
   console.log('新連線: ' + socket.id);
 
-  // 1. 初始化：接收位置回報
+  // 2. 新增：一連線就馬上把「歷史訊息」傳給這個人
+  socket.emit('history', messageHistory);
+
+  // 接收位置回報
   socket.on('reportLocation', (coords) => {
     users[socket.id] = {
         id: socket.id,
-        name: generateName(), // 預設給個隨機名字
+        name: generateName(),
         lat: coords.lat,
         lng: coords.lng
     };
     io.emit('updateMap', users);
-    
-    // 告訴該玩家他原本的名字是什麼 (方便前端顯示)
     socket.emit('yourNameIs', users[socket.id].name);
 
+    // 系統公告也算一種訊息，但不一定要存入歷史紀錄，看你需求
+    // 這裡我們簡單做：系統訊息不存歷史，只即時顯示
     io.emit('chatMessage', { 
         name: '系統', 
         text: `${users[socket.id].name} 已連線`,
@@ -39,23 +47,19 @@ io.on('connection', (socket) => {
     });
   });
 
-  // 2. 新增：玩家移動
   socket.on('playerMove', (coords) => {
     if (users[socket.id]) {
         users[socket.id].lat = coords.lat;
         users[socket.id].lng = coords.lng;
-        // 廣播更新後的地圖位置
         io.emit('updateMap', users);
     }
   });
 
-  // 3. 新增：玩家改名
   socket.on('changeName', (newName) => {
     if (users[socket.id]) {
         let oldName = users[socket.id].name;
-        users[socket.id].name = newName; // 更新名字
-        
-        io.emit('updateMap', users); // 更新地圖上的標籤
+        users[socket.id].name = newName;
+        io.emit('updateMap', users);
         io.emit('chatMessage', {
             name: '系統',
             text: `${oldName} 改名為 ${newName}`,
@@ -64,19 +68,30 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 4. 聊天
+  // 3. 修改：處理聊天訊息
   socket.on('sendChat', (msg) => {
     if (users[socket.id]) {
-        io.emit('chatMessage', {
+        // 建立訊息物件
+        const msgData = {
             id: socket.id,
             name: users[socket.id].name,
             text: msg,
-            isSystem: false
-        });
+            isSystem: false,
+            time: new Date().getTime() // 紀錄時間 (選用)
+        };
+
+        // 存入歷史紀錄
+        messageHistory.push(msgData);
+        // 如果超過 50 句，就把最舊的刪掉
+        if (messageHistory.length > MAX_HISTORY) {
+            messageHistory.shift();
+        }
+
+        // 廣播給所有人
+        io.emit('chatMessage', msgData);
     }
   });
 
-  // 5. 斷線
   socket.on('disconnect', () => {
     if (users[socket.id]) {
         io.emit('chatMessage', { name: '系統', text: `${users[socket.id].name} 下線了`, isSystem: true });
@@ -85,9 +100,6 @@ io.on('connection', (socket) => {
     }
   });
 });
-
-// 使用雲端給的 Port，如果沒有就用 3000
-const port = process.env.PORT || 3000;
 
 server.listen(port, () => {
   console.log(`伺服器啟動: http://localhost:${port}`);
