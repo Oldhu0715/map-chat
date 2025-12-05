@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全球即時通訊 (歷史紀錄版)</title>
+    <title>全球即時通訊 (單一世界版)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { margin: 0; padding: 0; font-family: "Segoe UI", sans-serif; background: #222; overflow: hidden; }
-        #world-map { height: 100vh; width: 100%; background: #1a1a1a; }
+        #world-map { height: 100vh; width: 100%; background: #0a0a0a; /* 背景改深黑，配合地圖邊界 */ }
 
         /* 左側懸浮面板 */
         #chat-panel {
@@ -33,11 +33,12 @@
         .msg-name { color: #00ffea; font-weight: bold; font-size: 13px; }
         .msg-text { color: white; margin-top: 2px; }
         .msg-sys { color: #888; font-style: italic; font-size: 12px; }
-
+        
+        .gps-info { font-size: 11px; color: #f39c12; margin-top: 5px; }
         #input-area { display: flex; gap: 5px; }
         #msg-input { flex: 1; padding: 10px; border: none; border-radius: 4px; background: #333; color: white; }
         
-        /* 名字標籤與氣泡 */
+        /* 樣式 */
         .user-label {
             background-color: #000000; color: #00ffea; border: 2px solid #00ffea;
             font-size: 13px; font-weight: 900; padding: 3px 8px; border-radius: 4px;
@@ -62,10 +63,11 @@
                 <input type="text" id="name-input" placeholder="輸入新名字...">
                 <button id="update-name-btn">改名</button>
             </div>
+            <div id="gps-status" class="gps-info">正在校正衛星訊號...</div>
         </div>
 
         <div id="chat-history">
-            <div class="msg-sys">正在連結通訊衛星...</div>
+            <div class="msg-sys">系統連線中...</div>
         </div>
         
         <div id="input-area">
@@ -78,116 +80,38 @@
 
     <script>
         var socket = io();
-        var map = L.map('world-map').setView([20, 0], 2);
+
+        // --- 地圖設定區 (修改重點) ---
+        var map = L.map('world-map', {
+            minZoom: 2, // 限制最小縮放，避免縮太小看到灰底
+            // 設定地圖邊界：左下角 [-90, -180], 右上角 [90, 180]
+            maxBounds: [[-90, -180], [90, 180]], 
+            maxBoundsViscosity: 1.0 // 1.0 代表完全卡死，不讓拖出去
+        }).setView([20, 0], 2);
+
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; CARTO', maxZoom: 19
+            attribution: '&copy; CARTO', 
+            maxZoom: 19,
+            noWrap: true, // 關鍵：告訴地圖磚不要左右重複
+            bounds: [[-90, -180], [90, 180]]
         }).addTo(map);
+        // -------------------------
 
         var markers = {};
+        var firstLoad = true;
 
         window.onload = function() {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => { initConnection(pos.coords.latitude, pos.coords.longitude); },
-                    (err) => { 
-                        addSystemMsg("無法取得位置，切換至隨機座標。");
-                        initConnection(20 + Math.random()*10, 120 + Math.random()*10);
-                    }
-                );
-            } else {
-                addSystemMsg("瀏覽器不支援定位。");
-                initConnection(25.03, 121.56);
-            }
-        };
-
-        function initConnection(lat, lng) {
-            map.setView([lat, lng], 13);
-            socket.emit('reportLocation', { lat: lat, lng: lng });
-            addSystemMsg("連線成功。");
-        }
-
-        socket.on('yourNameIs', function(name) {
-            document.getElementById('name-input').value = name;
-        });
-
-        // --- 1. 新增：接收歷史訊息 ---
-        socket.on('history', function(historyMessages) {
-            // 把收到的歷史訊息一條一條顯示出來
-            historyMessages.forEach(function(data) {
-                if (data.isSystem) {
-                    addSystemMsg(data.text);
-                } else {
-                    addUserMsg(data.name, data.text);
-                }
-            });
-            // 捲動到底部
-            var box = document.getElementById('chat-history');
-            box.scrollTop = box.scrollHeight;
-        });
-        // --------------------------
-
-        function updateName() {
-            var newName = document.getElementById('name-input').value;
-            if (newName.trim() !== "") {
-                socket.emit('changeName', newName);
-            }
-        }
-        document.getElementById('update-name-btn').addEventListener('click', updateName);
-        document.getElementById('name-input').addEventListener('keypress', (e) => { if(e.key==='Enter') updateName(); });
-
-        map.on('click', function(e) {
-            socket.emit('playerMove', { lat: e.latlng.lat, lng: e.latlng.lng });
-            map.panTo(e.latlng);
-        });
-
-        socket.on('updateMap', function(allUsers) {
-            for(var id in markers) { map.removeLayer(markers[id]); }
-            markers = {};
-            for (var id in allUsers) {
-                var u = allUsers[id];
-                var marker = L.marker([u.lat, u.lng]).addTo(map);
-                marker.bindTooltip(u.name, { 
-                    permanent: true, direction: 'top', className: 'user-label', offset: [0, -40]
-                });
-                markers[id] = marker;
-            }
-        });
-
-        socket.on('chatMessage', function(data) {
-            if (data.isSystem) {
-                addSystemMsg(data.text);
-            } else {
-                addUserMsg(data.name, data.text);
-                if (markers[data.id]) {
-                    markers[data.id].bindPopup(data.text).openPopup();
-                    setTimeout(() => { if(markers[data.id]) markers[data.id].closePopup(); }, 3000);
-                }
-            }
-        });
-
-        function addSystemMsg(text) {
-            var box = document.getElementById('chat-history');
-            box.innerHTML += `<div class="msg msg-sys">${text}</div>`;
-            box.scrollTop = box.scrollHeight;
-        }
-
-        function addUserMsg(name, text) {
-            var box = document.getElementById('chat-history');
-            box.innerHTML += `
-                <div class="msg">
-                    <span class="msg-name">${name}:</span> 
-                    <span class="msg-text">${text}</span>
-                </div>`;
-            box.scrollTop = box.scrollHeight;
-        }
-
-        var input = document.getElementById('msg-input');
-        input.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && input.value.trim() !== "") {
-                socket.emit('sendChat', input.value);
-                input.value = "";
-            }
-        });
-    </script>
-</body>
-</html>
+                var options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+                navigator.geolocation.watchPosition(
+                    (pos) => { 
+                        var accuracy = pos.coords.accuracy;
+                        document.getElementById('gps-status').innerText = `GPS 訊號鎖定 (誤差 ${Math.round(accuracy)} 公尺)`;
+                        
+                        if (firstLoad) {
+                            initConnection(pos.coords.latitude, pos.coords.longitude);
+                            firstLoad = false;
+                        } else {
+                            socket.emit('playerMove', { lat: pos.coords.latitude, lng: pos.coords.longitude });
+                            if (accuracy < 100) {
+                                map.setView([pos.coords
