@@ -3,49 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全球即時通訊 (單一世界版)</title>
+    <title>全球即時通訊 (手機優化版)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; padding: 0; font-family: "Segoe UI", sans-serif; background: #222; overflow: hidden; }
-        #world-map { height: 100vh; width: 100%; background: #0a0a0a; /* 背景改深黑，配合地圖邊界 */ }
+        body { margin: 0; padding: 0; font-family: "Segoe UI", sans-serif; background: #e5e3df; overflow: hidden; }
+        #world-map { height: 100vh; width: 100%; background: #e5e3df; }
 
-        /* 左側懸浮面板 */
+        /* --- 電腦版樣式 (預設) --- */
         #chat-panel {
             position: fixed; top: 20px; left: 20px;
             width: 320px; height: 60vh;
             background: rgba(0, 0, 0, 0.85);
             border-left: 4px solid #00ffea;
-            padding: 15px;
+            padding: 10px; /* 稍微縮小內距 */
             color: #ddd;
             display: flex; flex-direction: column;
-            z-index: 1000;
+            z-index: 2000; /* 確保在最上層 */
             border-radius: 8px;
-            box-shadow: 0 0 15px rgba(0, 255, 234, 0.2);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            transition: all 0.3s ease; /* 加入動畫效果 */
         }
 
-        #profile-section { border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 10px; }
-        .input-group { display: flex; gap: 5px; margin-top: 5px; }
-        #name-input { flex: 1; padding: 5px; background: #333; border: 1px solid #555; color: #00ffea; font-weight: bold; }
-        #update-name-btn { background: #007bff; color: white; border: none; padding: 5px 10px; cursor: pointer; }
+        /* 標題列區域 (加入點擊收合功能) */
+        #panel-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px; cursor: pointer; /* 讓滑鼠變手手 */
+            padding-bottom: 5px; border-bottom: 1px solid #444;
+        }
+        #panel-title { font-size: 16px; font-weight: bold; color: white; }
+        #toggle-icon { font-size: 12px; color: #00ffea; border: 1px solid #00ffea; padding: 2px 6px; border-radius: 4px; }
 
-        #chat-history { flex: 1; overflow-y: auto; margin-bottom: 10px; font-size: 14px; }
-        .msg { margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .msg-name { color: #00ffea; font-weight: bold; font-size: 13px; }
-        .msg-text { color: white; margin-top: 2px; }
-        .msg-sys { color: #888; font-style: italic; font-size: 12px; }
+        #profile-section { padding-bottom: 5px; margin-bottom: 5px; font-size: 12px; }
+        .input-group { display: flex; gap: 5px; margin-top: 5px; }
+        #name-input { flex: 1; padding: 5px; background: #333; border: 1px solid #555; color: #00ffea; font-weight: bold; font-size: 12px;}
+        #update-name-btn { background: #007bff; color: white; border: none; padding: 5px 10px; cursor: pointer; font-size: 12px;}
+
+        #chat-history { flex: 1; overflow-y: auto; margin-bottom: 5px; font-size: 13px; }
+        .msg { margin-bottom: 4px; padding-bottom: 2px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .msg-name { color: #00ffea; font-weight: bold; }
+        .msg-text { color: white; }
+        .msg-sys { color: #aaa; font-style: italic; font-size: 11px; }
         
-        .gps-info { font-size: 11px; color: #f39c12; margin-top: 5px; }
+        .gps-info { font-size: 10px; color: #f39c12; margin-top: 2px; }
         #input-area { display: flex; gap: 5px; }
-        #msg-input { flex: 1; padding: 10px; border: none; border-radius: 4px; background: #333; color: white; }
+        #msg-input { flex: 1; padding: 8px; border: none; border-radius: 4px; background: #333; color: white; font-size: 14px; }
         
-        /* 樣式 */
+        /* 名字標籤 */
         .user-label {
             background-color: #000000; color: #00ffea; border: 2px solid #00ffea;
-            font-size: 13px; font-weight: 900; padding: 3px 8px; border-radius: 4px;
-            white-space: nowrap; box-shadow: 0 0 5px #00ffea; text-align: center;
+            font-size: 12px; font-weight: 900; padding: 2px 6px; border-radius: 4px;
+            white-space: nowrap; box-shadow: 0 0 5px rgba(0,0,0,0.5); text-align: center;
         }
-        .leaflet-popup-content-wrapper { background: rgba(0,0,0,0.9); color: white; border: 1px solid #00ffea; }
-        .leaflet-popup-tip { background: rgba(0,0,0,0.9); }
+        .leaflet-popup-content-wrapper { background: white; color: black; border: 2px solid #007bff; font-weight: bold; }
+        .leaflet-popup-tip { background: white; border: 2px solid #007bff; }
+
+
+        /* --- 關鍵修改：手機版響應式樣式 (螢幕小於 768px 時觸發) --- */
+        @media (max-width: 768px) {
+            #chat-panel {
+                top: auto;       /* 取消頂部固定 */
+                left: 0;         /* 取消左側固定 */
+                bottom: 0;       /* 固定在底部 */
+                width: 100%;     /* 滿寬 */
+                height: 35vh;    /* 高度只佔螢幕 35% */
+                border-radius: 15px 15px 0 0; /* 上方圓角 */
+                border-left: none;
+                border-top: 4px solid #00ffea; /* 改成上方亮條 */
+                box-sizing: border-box; /* 確保內距不撐大寬度 */
+            }
+
+            /* 當面板被「收起」時的樣式 */
+            #chat-panel.minimized {
+                height: 45px; /* 只留標題的高度 */
+                overflow: hidden;
+            }
+            
+            /* 手機上字體稍微調大一點點好點擊 */
+            #panel-title { font-size: 14px; }
+            #toggle-icon { display: block; } /* 顯示收合按鈕 */
+        }
     </style>
 </head>
 <body>
@@ -53,17 +89,16 @@
     <div id="world-map"></div>
 
     <div id="chat-panel">
-        <div style="font-size: 18px; font-weight: bold; color: white; margin-bottom: 5px;">
-            🌐 全球訊號站
+        <div id="panel-header" onclick="togglePanel()">
+            <div id="panel-title">🌐 全球訊號站 <span id="gps-status" class="gps-info" style="display:inline; margin-left:5px;">(定位中...)</span></div>
+            <div id="toggle-icon">收起 ▼</div>
         </div>
 
         <div id="profile-section">
-            <div style="font-size: 12px; color: #aaa;">我的名字：</div>
             <div class="input-group">
-                <input type="text" id="name-input" placeholder="輸入新名字...">
+                <input type="text" id="name-input" placeholder="名字">
                 <button id="update-name-btn">改名</button>
             </div>
-            <div id="gps-status" class="gps-info">正在校正衛星訊號...</div>
         </div>
 
         <div id="chat-history">
@@ -71,7 +106,7 @@
         </div>
         
         <div id="input-area">
-            <input type="text" id="msg-input" placeholder="發送廣播..." autocomplete="off">
+            <input type="text" id="msg-input" placeholder="輸入訊息..." autocomplete="off">
         </div>
     </div>
 
@@ -81,23 +116,45 @@
     <script>
         var socket = io();
 
-        // --- 地圖設定區 (修改重點) ---
+        // --- 手機版收合功能 ---
+        var isMinimized = false;
+        function togglePanel() {
+            var panel = document.getElementById('chat-panel');
+            var icon = document.getElementById('toggle-icon');
+            
+            if (isMinimized) {
+                // 展開
+                panel.classList.remove('minimized');
+                icon.innerText = "收起 ▼";
+                isMinimized = false;
+            } else {
+                // 收起
+                panel.classList.add('minimized');
+                icon.innerText = "展開 ▲";
+                isMinimized = true;
+            }
+        }
+        // -------------------
+
         var map = L.map('world-map', {
-            minZoom: 2, // 限制最小縮放，避免縮太小看到灰底
-            // 設定地圖邊界：左下角 [-90, -180], 右上角 [90, 180]
+            minZoom: 2,
             maxBounds: [[-90, -180], [90, 180]], 
-            maxBoundsViscosity: 1.0 // 1.0 代表完全卡死，不讓拖出去
+            maxBoundsViscosity: 1.0,
+            zoomControl: false // 手機版先把縮放按鈕藏起來，避免擋路，用手指縮放即可
         }).setView([20, 0], 2);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; CARTO', 
-            maxZoom: 19,
-            noWrap: true, // 關鍵：告訴地圖磚不要左右重複
-            bounds: [[-90, -180], [90, 180]]
+        // 如果是電腦版，再把縮放按鈕加回來，放在右上角
+        if (window.innerWidth > 768) {
+            L.control.zoom({ position: 'topright' }).addTo(map);
+        }
+
+        L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            attribution: '&copy; Google Maps',
+            maxZoom: 20, noWrap: true, bounds: [[-90, -180], [90, 180]]
         }).addTo(map);
-        // -------------------------
 
         var markers = {};
+        var accuracyCircle = null;
         var firstLoad = true;
 
         window.onload = function() {
@@ -105,24 +162,32 @@
                 var options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
                 navigator.geolocation.watchPosition(
                     (pos) => { 
+                        var lat = pos.coords.latitude;
+                        var lng = pos.coords.longitude;
                         var accuracy = pos.coords.accuracy;
-                        document.getElementById('gps-status').innerText = `GPS 訊號鎖定 (誤差 ${Math.round(accuracy)} 公尺)`;
+
+                        // 更新標題列上的 GPS 狀態 (簡短版)
+                        document.getElementById('gps-status').innerText = `(誤差${Math.round(accuracy)}m)`;
                         
+                        if (accuracyCircle) {
+                            accuracyCircle.setLatLng([lat, lng]);
+                            accuracyCircle.setRadius(accuracy);
+                        } else {
+                            accuracyCircle = L.circle([lat, lng], {
+                                color: '#007bff', fillColor: '#007bff', fillOpacity: 0.1, radius: accuracy
+                            }).addTo(map);
+                        }
+
                         if (firstLoad) {
-                            initConnection(pos.coords.latitude, pos.coords.longitude);
+                            initConnection(lat, lng);
+                            map.fitBounds(accuracyCircle.getBounds());
                             firstLoad = false;
                         } else {
-                            socket.emit('playerMove', { lat: pos.coords.latitude, lng: pos.coords.longitude });
-                            if (accuracy < 100) {
-                                map.setView([pos.coords.latitude, pos.coords.longitude], 16); 
-                            }
+                            socket.emit('playerMove', { lat: lat, lng: lng });
                         }
                     },
                     (err) => { 
-                        var msg = "定位失敗";
-                        if(err.code == 1) msg = "使用者拒絕提供位置";
-                        document.getElementById('gps-status').innerText = "⚠️ " + msg;
-                        addSystemMsg(msg + "，切換至隨機座標。");
+                        document.getElementById('gps-status').innerText = "(無訊號)";
                         if(firstLoad) {
                             initConnection(20 + Math.random()*10, 120 + Math.random()*10);
                             firstLoad = false;
@@ -131,15 +196,13 @@
                     options
                 );
             } else {
-                addSystemMsg("瀏覽器不支援定位。");
                 initConnection(25.03, 121.56);
             }
         };
 
         function initConnection(lat, lng) {
-            map.setView([lat, lng], 15);
             socket.emit('reportLocation', { lat: lat, lng: lng });
-            addSystemMsg("連線成功。");
+            addSystemMsg("連線成功");
         }
 
         socket.on('yourNameIs', function(name) {
@@ -162,11 +225,14 @@
             }
         }
         document.getElementById('update-name-btn').addEventListener('click', updateName);
-        document.getElementById('name-input').addEventListener('keypress', (e) => { if(e.key==='Enter') updateName(); });
 
         map.on('click', function(e) {
             socket.emit('playerMove', { lat: e.latlng.lat, lng: e.latlng.lng });
             map.panTo(e.latlng);
+            if(accuracyCircle) {
+                accuracyCircle.setLatLng(e.latlng);
+                accuracyCircle.setRadius(5); 
+            }
         });
 
         socket.on('updateMap', function(allUsers) {
@@ -215,6 +281,19 @@
             if (e.key === 'Enter' && input.value.trim() !== "") {
                 socket.emit('sendChat', input.value);
                 input.value = "";
+            }
+        });
+        
+        // 防止手機鍵盤彈出時畫面跑版
+        input.addEventListener('focus', function() {
+            if (window.innerWidth <= 768) {
+                // 手機打字時，稍微把對話框拉高一點，避免被鍵盤擋住
+                document.getElementById('chat-panel').style.height = '50vh';
+            }
+        });
+        input.addEventListener('blur', function() {
+            if (window.innerWidth <= 768 && !isMinimized) {
+                document.getElementById('chat-panel').style.height = '35vh';
             }
         });
     </script>
