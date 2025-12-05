@@ -3,36 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全球即時通訊 (手機優化版)</title>
+    <title>全球即時通訊 (廣播電台版)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         body { margin: 0; padding: 0; font-family: "Segoe UI", sans-serif; background: #e5e3df; overflow: hidden; }
         #world-map { height: 100vh; width: 100%; background: #e5e3df; }
 
-        /* --- 電腦版樣式 (預設) --- */
+        /* --- 1. 新增：頂部廣播播放器樣式 --- */
+        #radio-player-bar {
+            position: fixed; top: 0; left: 0; width: 100%; height: 60px;
+            background: rgba(20, 20, 20, 0.95);
+            border-bottom: 2px solid #ff0055; /* 霓虹粉紅，區隔聊天室的藍色 */
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 10px; box-sizing: border-box;
+            z-index: 3000; /* 最高層級 */
+            color: white;
+            transition: transform 0.3s;
+        }
+        .station-info { display: flex; flex-direction: column; max-width: 50%; }
+        .station-name { font-weight: bold; font-size: 14px; color: #ff0055; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .station-country { font-size: 11px; color: #aaa; }
+        
+        /* HTML5 音訊控制項樣式微調 */
+        audio { height: 30px; max-width: 150px; }
+
+        /* --- 聊天面板 (稍微往下移，避開播放器) --- */
         #chat-panel {
-            position: fixed; top: 20px; left: 20px;
-            width: 320px; height: 60vh;
+            position: fixed; top: 70px; /* 避開上面的播放器 */
+            left: 20px;
+            width: 320px; height: 55vh;
             background: rgba(0, 0, 0, 0.85);
             border-left: 4px solid #00ffea;
-            padding: 10px; /* 稍微縮小內距 */
-            color: #ddd;
+            padding: 10px; color: #ddd;
             display: flex; flex-direction: column;
-            z-index: 2000; /* 確保在最上層 */
-            border-radius: 8px;
+            z-index: 2000; border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            transition: all 0.3s ease; /* 加入動畫效果 */
+            transition: all 0.3s ease;
         }
 
-        /* 標題列區域 (加入點擊收合功能) */
-        #panel-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 10px; cursor: pointer; /* 讓滑鼠變手手 */
-            padding-bottom: 5px; border-bottom: 1px solid #444;
-        }
+        #panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; cursor: pointer; padding-bottom: 5px; border-bottom: 1px solid #444; }
         #panel-title { font-size: 16px; font-weight: bold; color: white; }
         #toggle-icon { font-size: 12px; color: #00ffea; border: 1px solid #00ffea; padding: 2px 6px; border-radius: 4px; }
-
+        
         #profile-section { padding-bottom: 5px; margin-bottom: 5px; font-size: 12px; }
         .input-group { display: flex; gap: 5px; margin-top: 5px; }
         #name-input { flex: 1; padding: 5px; background: #333; border: 1px solid #555; color: #00ffea; font-weight: bold; font-size: 12px;}
@@ -48,43 +60,43 @@
         #input-area { display: flex; gap: 5px; }
         #msg-input { flex: 1; padding: 8px; border: none; border-radius: 4px; background: #333; color: white; font-size: 14px; }
         
-        /* 名字標籤 */
-        .user-label {
-            background-color: #000000; color: #00ffea; border: 2px solid #00ffea;
-            font-size: 12px; font-weight: 900; padding: 2px 6px; border-radius: 4px;
-            white-space: nowrap; box-shadow: 0 0 5px rgba(0,0,0,0.5); text-align: center;
+        /* 標籤與氣泡 */
+        .user-label { background-color: #000000; color: #00ffea; border: 2px solid #00ffea; font-size: 12px; font-weight: 900; padding: 2px 6px; border-radius: 4px; white-space: nowrap; box-shadow: 0 0 5px rgba(0,0,0,0.5); text-align: center; }
+        
+        /* 2. 新增：電台專用標籤樣式 (粉紅色) */
+        .radio-label {
+            background-color: #220011; color: #ff0055; border: 1px solid #ff0055;
+            font-size: 11px; font-weight: bold; padding: 1px 4px; border-radius: 4px;
+            white-space: nowrap; text-align: center;
         }
+
         .leaflet-popup-content-wrapper { background: white; color: black; border: 2px solid #007bff; font-weight: bold; }
         .leaflet-popup-tip { background: white; border: 2px solid #007bff; }
 
-
-        /* --- 關鍵修改：手機版響應式樣式 (螢幕小於 768px 時觸發) --- */
+        /* 手機響應式 */
         @media (max-width: 768px) {
             #chat-panel {
-                top: auto;       /* 取消頂部固定 */
-                left: 0;         /* 取消左側固定 */
-                bottom: 0;       /* 固定在底部 */
-                width: 100%;     /* 滿寬 */
-                height: 35vh;    /* 高度只佔螢幕 35% */
-                border-radius: 15px 15px 0 0; /* 上方圓角 */
-                border-left: none;
-                border-top: 4px solid #00ffea; /* 改成上方亮條 */
-                box-sizing: border-box; /* 確保內距不撐大寬度 */
+                top: auto; left: 0; bottom: 0; width: 100%; height: 35vh;
+                border-radius: 15px 15px 0 0; border-left: none; border-top: 4px solid #00ffea;
             }
-
-            /* 當面板被「收起」時的樣式 */
-            #chat-panel.minimized {
-                height: 45px; /* 只留標題的高度 */
-                overflow: hidden;
-            }
+            #chat-panel.minimized { height: 45px; overflow: hidden; }
+            #toggle-icon { display: block; }
             
-            /* 手機上字體稍微調大一點點好點擊 */
-            #panel-title { font-size: 14px; }
-            #toggle-icon { display: block; } /* 顯示收合按鈕 */
+            /* 手機版播放器稍微縮小 */
+            #radio-player-bar { height: 50px; }
+            .station-name { font-size: 12px; }
         }
     </style>
 </head>
 <body>
+
+    <div id="radio-player-bar">
+        <div class="station-info">
+            <div class="station-name" id="current-station">請點擊地圖上的 🎵 圖示</div>
+            <div class="station-country" id="current-country">全球廣播網待命中</div>
+        </div>
+        <audio id="audio-player" controls autoplay playsinline></audio>
+    </div>
 
     <div id="world-map"></div>
 
@@ -103,6 +115,7 @@
 
         <div id="chat-history">
             <div class="msg-sys">系統連線中...</div>
+            <div class="msg-sys" style="color: #ff0055;">★ 提示：地圖上的 🎵 音符代表廣播電台，點擊即可收聽！</div>
         </div>
         
         <div id="input-area">
@@ -116,46 +129,112 @@
     <script>
         var socket = io();
 
-        // --- 手機版收合功能 ---
+        // 面板收合
         var isMinimized = false;
         function togglePanel() {
             var panel = document.getElementById('chat-panel');
             var icon = document.getElementById('toggle-icon');
-            
             if (isMinimized) {
-                // 展開
                 panel.classList.remove('minimized');
                 icon.innerText = "收起 ▼";
                 isMinimized = false;
             } else {
-                // 收起
                 panel.classList.add('minimized');
                 icon.innerText = "展開 ▲";
                 isMinimized = true;
             }
         }
-        // -------------------
 
+        // 初始化地圖 (限制邊界)
         var map = L.map('world-map', {
             minZoom: 2,
             maxBounds: [[-90, -180], [90, 180]], 
             maxBoundsViscosity: 1.0,
-            zoomControl: false // 手機版先把縮放按鈕藏起來，避免擋路，用手指縮放即可
-        }).setView([20, 0], 2);
+            zoomControl: false 
+        }).setView([20, 0], 3);
 
-        // 如果是電腦版，再把縮放按鈕加回來，放在右上角
-        if (window.innerWidth > 768) {
-            L.control.zoom({ position: 'topright' }).addTo(map);
-        }
+        if (window.innerWidth > 768) L.control.zoom({ position: 'topright' }).addTo(map);
 
         L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
             attribution: '&copy; Google Maps',
             maxZoom: 20, noWrap: true, bounds: [[-90, -180], [90, 180]]
         }).addTo(map);
 
+        // --- 變數區 ---
         var markers = {};
         var accuracyCircle = null;
         var firstLoad = true;
+        var radioLayer = L.layerGroup().addTo(map); // 專門放電台的圖層
+
+        // --- 廣播電台功能核心 ---
+        
+        // 電台圖示 (音符)
+        var radioIcon = L.divIcon({
+            className: 'custom-div-icon',
+            html: "<div style='background-color:#ff0055;width:30px;height:30px;border-radius:50%;display:flex;justify-content:center;align-items:center;border:2px solid white;box-shadow:0 0 5px black;font-size:16px;'>🎵</div>",
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+
+        // 載入全球熱門電台 (使用 Radio Browser API)
+        function loadRadioStations() {
+            // 我們抓取全球點擊率最高的 100 個且有經緯度資訊的電台
+            var apiUrl = "https://de1.api.radio-browser.info/json/stations/topclick?limit=100&hidebroken=true&has_geo_info=true";
+            
+            fetch(apiUrl)
+            .then(response => response.json())
+            .then(stations => {
+                stations.forEach(station => {
+                    if (station.geo_lat && station.geo_long) {
+                        // 建立標記
+                        var marker = L.marker([station.geo_lat, station.geo_long], {icon: radioIcon})
+                            .bindTooltip(station.name, { 
+                                direction: 'top', className: 'radio-label', offset: [0, -15]
+                            });
+                        
+                        // 點擊事件：播放音樂
+                        marker.on('click', function() {
+                            playRadio(station.name, station.country, station.url_resolved);
+                            
+                            // 視覺回饋：地圖飛過去
+                            map.setView([station.geo_lat, station.geo_long], 10);
+                            
+                            // 在地圖上顯示資訊
+                            marker.bindPopup(`<b>正在播放:</b><br>${station.name}<br>(${station.country})`).openPopup();
+                        });
+
+                        radioLayer.addLayer(marker);
+                    }
+                });
+                addSystemMsg(`已載入 ${stations.length} 個全球熱門電台 🎵`);
+            })
+            .catch(err => console.error("電台載入失敗", err));
+        }
+
+        // 播放控制
+        function playRadio(name, country, url) {
+            var player = document.getElementById('audio-player');
+            var nameDisplay = document.getElementById('current-station');
+            var countryDisplay = document.getElementById('current-country');
+
+            // 解決混合內容問題 (如果是 http 強制轉 https 試試看，不一定成功但值得一試)
+            // 很多電台串流還是 http，這在 https 網站上可能會被瀏覽器擋掉
+            // 如果你是用 localhost 測試通常沒問題
+            
+            player.src = url;
+            player.play().catch(e => {
+                alert("無法播放此電台 (可能連線不穩或來源限制)");
+                console.error(e);
+            });
+
+            nameDisplay.innerText = "🎵 " + name;
+            countryDisplay.innerText = country;
+        }
+
+        // 啟動時載入電台
+        loadRadioStations();
+        // -------------------------
+
 
         window.onload = function() {
             if (navigator.geolocation) {
@@ -166,7 +245,6 @@
                         var lng = pos.coords.longitude;
                         var accuracy = pos.coords.accuracy;
 
-                        // 更新標題列上的 GPS 狀態 (簡短版)
                         document.getElementById('gps-status').innerText = `(誤差${Math.round(accuracy)}m)`;
                         
                         if (accuracyCircle) {
@@ -284,17 +362,11 @@
             }
         });
         
-        // 防止手機鍵盤彈出時畫面跑版
         input.addEventListener('focus', function() {
-            if (window.innerWidth <= 768) {
-                // 手機打字時，稍微把對話框拉高一點，避免被鍵盤擋住
-                document.getElementById('chat-panel').style.height = '50vh';
-            }
+            if (window.innerWidth <= 768) document.getElementById('chat-panel').style.height = '50vh';
         });
         input.addEventListener('blur', function() {
-            if (window.innerWidth <= 768 && !isMinimized) {
-                document.getElementById('chat-panel').style.height = '35vh';
-            }
+            if (window.innerWidth <= 768 && !isMinimized) document.getElementById('chat-panel').style.height = '35vh';
         });
     </script>
 </body>
