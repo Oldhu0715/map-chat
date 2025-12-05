@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Radio Garden 3D (全球+台灣全開版)</title>
+    <title>Radio Earth 3D</title>
     <script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
     <link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
     
@@ -11,7 +11,9 @@
         body { margin: 0; padding: 0; font-family: "Segoe UI", sans-serif; overflow: hidden; background: black; }
         #cesiumContainer { width: 100%; height: 100vh; margin: 0; padding: 0; overflow: hidden; }
 
-        /* 極簡介面風格 */
+        /* --- 介面風格：模仿 Radio Garden 極簡黑透 --- */
+        
+        /* 1. 頂部播放器 */
         #radio-player-bar {
             position: fixed; top: 0; left: 0; width: 100%; height: 70px;
             background: rgba(0, 0, 0, 0.6); 
@@ -24,16 +26,9 @@
         .station-info { display: flex; flex-direction: column; }
         .station-name { font-size: 18px; font-weight: bold; color: #00ffaa; text-shadow: 0 0 10px #00ffaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
         .station-country { font-size: 12px; color: #ccc; letter-spacing: 1px; }
-        audio { height: 30px; max-width: 150px; filter: invert(1); }
+        audio { height: 30px; max-width: 150px; filter: invert(1); } /* 反轉顏色讓播放器變黑 */
 
-        #loading-badge {
-            position: fixed; bottom: 20px; right: 20px;
-            color: #00ffaa; font-size: 12px; z-index: 100;
-            text-shadow: 0 0 5px black; background: rgba(0,0,0,0.5);
-            padding: 5px 10px; border-radius: 10px; border: 1px solid #00ffaa;
-        }
-
-        /* 聊天面板 */
+        /* 2. 聊天面板 */
         #chat-panel {
             position: fixed; top: 90px; left: 20px;
             width: 300px; height: 50vh;
@@ -49,25 +44,35 @@
         
         #panel-header { display: flex; justify-content: space-between; cursor: pointer; border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 5px;}
         #panel-title { color: #fff; font-weight: bold; }
-        #chat-history { flex: 1; overflow-y: auto; font-size: 13px; }
+        #chat-history { flex: 1; overflow-y: auto; font-size: 13px; scrollbar-width: thin; }
         .msg { margin-bottom: 5px; }
         .msg-name { color: #00ffaa; font-weight: bold; }
         .msg-sys { color: #aaa; font-style: italic; font-size: 11px; }
+        
         #input-area { display: flex; gap: 5px; margin-top: 5px; }
         #msg-input { flex: 1; background: rgba(255,255,255,0.1); border: none; color: white; padding: 8px; border-radius: 4px; }
         
-        /* 十字準心 */
+        /* 3. 中心十字準心 */
         #crosshair {
             position: fixed; top: 50%; left: 50%; width: 20px; height: 20px;
             border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 50%;
             transform: translate(-50%, -50%); z-index: 90; pointer-events: none;
         }
 
-        .cesium-viewer-bottom { display: none; }
-        
+        /* 4. 讀取提示 */
+        #loading-badge {
+            position: fixed; bottom: 20px; right: 20px;
+            color: #00ffaa; font-size: 12px; z-index: 100;
+            text-shadow: 0 0 5px black; background: rgba(0,0,0,0.5);
+            padding: 5px 10px; border-radius: 10px; border: 1px solid #00ffaa;
+        }
+
+        .cesium-viewer-bottom { display: none; } /* 隱藏版權字樣 */
+
         @media (max-width: 768px) {
             #chat-panel { top: auto; bottom: 0; left: 0; width: 100%; height: 35vh; border-radius: 15px 15px 0 0; }
             #radio-player-bar { height: 60px; }
+            audio { max-width: 100px; }
         }
     </style>
 </head>
@@ -84,7 +89,7 @@
         <audio id="audio-player" controls autoplay playsinline></audio>
     </div>
 
-    <div id="loading-badge">📡 正在初始化衛星連線...</div>
+    <div id="loading-badge">📡 正在初始化 3D 引擎...</div>
 
     <div id="chat-panel">
         <div id="panel-header" onclick="togglePanel()">
@@ -97,7 +102,7 @@
         </div>
         <div id="chat-history">
             <div class="msg-sys">歡迎來到 3D 廣播世界。</div>
-            <div class="msg-sys">正在混合載入全球與台灣電台...</div>
+            <div class="msg-sys">混合載入模式：全球熱門 + 台灣全頻道。</div>
         </div>
         <div id="input-area">
             <input type="text" id="msg-input" placeholder="輸入訊息..." autocomplete="off">
@@ -115,10 +120,11 @@
             else { panel.classList.add('minimized'); isMinimized = true; }
         }
 
-        // 1. 初始化 3D 地球
+        // --- 1. 初始化 Cesium 3D 地球 ---
         var viewer = new Cesium.Viewer('cesiumContainer', {
+            // 使用內建的深色衛星圖，更有質感 (NaturalEarthII)
             imageryProvider: new Cesium.TileMapServiceImageryProvider({
-                url: Cesium.buildModuleUrl("Assets/Textures/NaturalEarthII"), // 使用內建的深色衛星圖，更有質感
+                url: Cesium.buildModuleUrl("Assets/Textures/NaturalEarthII"),
             }),
             baseLayerPicker: false, geocoder: false, homeButton: false, infoBox: false,
             sceneModePicker: false, selectionIndicator: false, timeline: false,
@@ -126,15 +132,15 @@
             contextOptions: { webgl: { alpha: true } }
         });
 
+        // 開啟迷霧與日照，增加真實感
         viewer.scene.fog.enabled = true;
         viewer.scene.fog.density = 0.0002;
-        viewer.scene.globe.enableLighting = true; // 日照
+        viewer.scene.globe.enableLighting = true;
         
-        // 使用 PointPrimitiveCollection 效能比 Entity 好很多，適合幾千個點
+        // 使用 PointPrimitiveCollection 高效能繪圖 (適合大量點)
         var pointCollection = viewer.scene.primitives.add(new Cesium.PointPrimitiveCollection());
-        var stationDataMap = {}; // 用來存點選時需要的資料
-
-        // --- 核心：混合載入策略 ---
+        
+        // --- 2. 混合載入策略 (全球 + 台灣) ---
         async function loadHybridStations() {
             var badge = document.getElementById('loading-badge');
             badge.innerText = "正在下載全球熱門電台 (1/2)...";
@@ -142,8 +148,9 @@
             var allStations = [];
             var seenIds = new Set();
 
-            // 1. 抓全球熱門 3500 台 (撐場面)
+            // 步驟 A: 抓全球熱門 3500 台 (撐場面)
             try {
+                // 不限 HTTPS，因為我們有 Proxy
                 let res = await fetch("https://de1.api.radio-browser.info/json/stations/search?limit=3500&hidebroken=true&has_geo_info=true&order=clickcount&reverse=true");
                 let globalData = await res.json();
                 globalData.forEach(s => {
@@ -152,17 +159,17 @@
                         seenIds.add(s.stationuuid);
                     }
                 });
-            } catch(e) { console.log("全球載入失敗"); }
+            } catch(e) { console.log("全球載入失敗", e); }
 
-            // 2. 強制抓台灣電台 (補強)
+            // 步驟 B: 強制抓台灣電台 (補強)
             badge.innerText = "正在補強台灣訊號 (2/2)...";
             try {
                 let res = await fetch("https://de1.api.radio-browser.info/json/stations/bycountrycodeexact/TW?hidebroken=true");
                 let twData = await res.json();
                 twData.forEach(s => {
-                    // 如果全球熱門沒抓到這個台灣電台，就把它加進去
+                    // 如果全球熱門裡沒有，就加進去
                     if(!seenIds.has(s.stationuuid)) {
-                        // 如果台灣電台沒座標，給它隨機撒在台灣上空 (補救措施)
+                        // 如果台灣電台沒座標，隨機撒在台灣上空
                         if (!s.geo_lat || !s.geo_long) {
                             s.geo_lat = 23.5 + (Math.random() - 0.5) * 2;
                             s.geo_long = 121 + (Math.random() - 0.5) * 1.5;
@@ -171,45 +178,46 @@
                         seenIds.add(s.stationuuid);
                     }
                 });
-            } catch(e) { console.log("台灣載入失敗"); }
+            } catch(e) { console.log("台灣載入失敗", e); }
 
             badge.innerText = `處理中... 共 ${allStations.length} 個訊號`;
 
-            // 3. 畫到地球上
+            // 步驟 C: 畫到地球上
             allStations.forEach(station => {
                 if (station.geo_lat && station.geo_long) {
                     var p = pointCollection.add({
                         position: Cesium.Cartesian3.fromDegrees(station.geo_long, station.geo_lat),
-                        pixelSize: 5, // 點大小
+                        pixelSize: 5, // 點的大小
                         color: Cesium.Color.fromCssColorString('#00ffaa'), // 螢光綠
                         outlineColor: Cesium.Color.BLACK,
                         outlineWidth: 1,
+                        // 設定可見距離與半透明效果
                         translucencyByDistance: new Cesium.NearFarScalar(1.5e2, 1.0, 1.5e7, 0.4),
-                        disableDepthTestDistance: 5000000 // 讓點點在遠處時不要被地形遮住
+                        disableDepthTestDistance: 5000000
                     });
-                    // 綁定資料 ID
+                    // 綁定資料 ID 到這個點
                     p.id = station; 
                 }
             });
 
             badge.innerText = "訊號掃描完成 ✅";
             setTimeout(() => badge.style.display = 'none', 3000);
-            document.getElementById('current-country').innerText = "請點擊綠色光點";
+            document.getElementById('current-country').innerText = "請點擊綠色光點收聽";
         }
 
         loadHybridStations();
 
-        // --- 點擊事件 ---
+        // --- 3. 點擊電台播放 ---
         var handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
         handler.setInputAction(function(click) {
             var pickedObject = viewer.scene.pick(click.position);
             
             // 檢查點到的是不是電台點點
             if (Cesium.defined(pickedObject) && pickedObject.primitive === pointCollection) {
-                var station = pickedObject.id; // 剛剛綁定的 station 物件
+                var station = pickedObject.id; // 取出綁定的資料
                 playRadio(station.name, station.country, station.url_resolved);
                 
-                // 鏡頭飛過去
+                // 鏡頭飛向該電台 (像 Radio Garden 一樣)
                 viewer.camera.flyTo({
                     destination: Cesium.Cartesian3.fromDegrees(station.geo_long, station.geo_lat, 500000), // 高度 500km
                     duration: 1.5
@@ -220,20 +228,25 @@
         function playRadio(name, country, url) {
             var player = document.getElementById('audio-player');
             var finalUrl = url;
+            
+            // 🔥 自動 Proxy 判斷：如果是 HTTP，就走我們的伺服器
             if (url.startsWith('http://')) {
                 finalUrl = '/radio-proxy?url=' + encodeURIComponent(url);
             }
+            
             player.src = finalUrl;
             document.getElementById('current-station').innerText = "連線中... " + name;
+            
             player.play().then(() => {
                 document.getElementById('current-station').innerText = name;
                 document.getElementById('current-country').innerText = country;
             }).catch(() => {
                 document.getElementById('current-station').innerText = "❌ 訊號中斷";
+                document.getElementById('current-country').innerText = "該電台暫時無法連線";
             });
         }
 
-        // --- 玩家連線與聊天 ---
+        // --- 4. 玩家 GPS 與多人連線 ---
         var playerEntities = {}; 
         var myEntity = null;
 
@@ -258,15 +271,18 @@
                     document.getElementById('gps-status').innerText = "(無訊號)";
                     initConnection(25.03, 121.56);
                 }, { enableHighAccuracy: true });
-            } else { initConnection(25.03, 121.56); }
+            } else {
+                initConnection(25.03, 121.56);
+            }
         };
 
         function initConnection(lat, lng) { socket.emit('reportLocation', { lat: lat, lng: lng }); }
-        socket.on('yourNameIs', function(name) { document.getElementById('name-input').value = name; });
         
+        socket.on('yourNameIs', function(name) { document.getElementById('name-input').value = name; });
         function updateName() { var n=document.getElementById('name-input').value; if(n.trim()) socket.emit('changeName', n); }
         document.getElementById('update-name-btn').addEventListener('click', updateName);
 
+        // 更新其他玩家位置
         socket.on('updateMap', function(users) {
             var activeIds = new Set();
             for (var id in users) {
@@ -276,24 +292,48 @@
                     playerEntities[id].position = Cesium.Cartesian3.fromDegrees(u.lng, u.lat);
                     playerEntities[id].label.text = u.name;
                 } else {
+                    // 建立新玩家 (青色點)
                     playerEntities[id] = viewer.entities.add({
                         position: Cesium.Cartesian3.fromDegrees(u.lng, u.lat),
-                        point: { pixelSize: 10, color: Cesium.Color.CYAN, outlineColor: Cesium.Color.BLACK, outlineWidth: 2, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND },
-                        label: { text: u.name, font: '14px sans-serif', fillColor: Cesium.Color.CYAN, outlineWidth: 2, style: Cesium.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new Cesium.Cartesian2(0, -15), distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, 2000000.0) }
+                        point: { 
+                            pixelSize: 10, color: Cesium.Color.CYAN, outlineColor: Cesium.Color.BLACK, outlineWidth: 2, 
+                            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND 
+                        },
+                        label: { 
+                            text: u.name, font: '14px sans-serif', fillColor: Cesium.Color.CYAN, 
+                            style: Cesium.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new Cesium.Cartesian2(0, -15), 
+                            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, 2000000.0) 
+                        }
                     });
                 }
             }
+            // 移除斷線玩家
             for (var existingId in playerEntities) {
                 if (!activeIds.has(existingId)) { viewer.entities.remove(playerEntities[existingId]); delete playerEntities[existingId]; }
             }
         });
 
-        socket.on('history', function(h) { var b=document.getElementById('chat-history'); h.forEach(d => { b.innerHTML+=`<div class="msg"><span class="${d.isSystem?'msg-sys':'msg-name'}">${d.isSystem?'':d.name+': '}${d.text}</span></div>`; }); b.scrollTop=b.scrollHeight; });
-        socket.on('chatMessage', function(d) { var b=document.getElementById('chat-history'); b.innerHTML+=`<div class="msg"><span class="${d.isSystem?'msg-sys':'msg-name'}">${d.isSystem?'':d.name+': '}${d.text}</span></div>`; b.scrollTop=b.scrollHeight; });
-        
-        var input=document.getElementById('msg-input'); 
-        input.addEventListener('keypress', function(e){ if(e.key==='Enter'&&input.value.trim()){ socket.emit('sendChat', input.value); input.value=""; } });
+        socket.on('history', function(h) { 
+            var b = document.getElementById('chat-history');
+            h.forEach(d => {
+                b.innerHTML += `<div class="msg"><span class="${d.isSystem?'msg-sys':'msg-name'}">${d.isSystem?'':d.name+': '}${d.text}</span></div>`;
+            });
+            b.scrollTop = b.scrollHeight;
+        });
 
+        socket.on('chatMessage', function(d) {
+            var b = document.getElementById('chat-history');
+            b.innerHTML += `<div class="msg"><span class="${d.isSystem?'msg-sys':'msg-name'}">${d.isSystem?'':d.name+': '}${d.text}</span></div>`;
+            b.scrollTop = b.scrollHeight;
+        });
+
+        var input = document.getElementById('msg-input');
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && input.value.trim()) {
+                socket.emit('sendChat', input.value);
+                input.value = "";
+            }
+        });
     </script>
 </body>
 </html>
