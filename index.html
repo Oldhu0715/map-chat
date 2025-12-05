@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全球即時通訊 (萬台廣播版)</title>
+    <title>全球即時通訊 (智慧電台版)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
@@ -26,6 +26,14 @@
         .station-name { font-weight: bold; font-size: 14px; color: #ff0055; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .station-country { font-size: 11px; color: #aaa; }
         audio { height: 30px; max-width: 150px; }
+
+        /* 讀取中提示 (新增) */
+        #loading-badge {
+            position: fixed; top: 70px; right: 10px;
+            background: rgba(0,0,0,0.8); color: #00ffea;
+            padding: 5px 10px; border-radius: 20px; font-size: 12px;
+            z-index: 3000; display: none; border: 1px solid #00ffea;
+        }
 
         /* 聊天面板 */
         #chat-panel {
@@ -55,12 +63,11 @@
         #input-area { display: flex; gap: 5px; }
         #msg-input { flex: 1; padding: 8px; border: none; border-radius: 4px; background: #333; color: white; font-size: 14px; }
         
-        /* 標籤樣式 */
         .user-label { background-color: #000000; color: #00ffea; border: 2px solid #00ffea; font-size: 12px; font-weight: 900; padding: 2px 6px; border-radius: 4px; white-space: nowrap; box-shadow: 0 0 5px rgba(0,0,0,0.5); text-align: center; }
         .radio-label { background-color: #220011; color: #ff0055; border: 1px solid #ff0055; font-size: 11px; font-weight: bold; padding: 1px 4px; border-radius: 4px; white-space: nowrap; text-align: center; }
         .leaflet-popup-content-wrapper { background: white; color: black; border: 2px solid #007bff; font-weight: bold; }
         
-        /* 聚合圖示樣式 (當很多電台擠在一起時顯示的圓圈) */
+        /* 聚合圖示樣式 */
         .marker-cluster-small { background-color: rgba(255, 0, 85, 0.6); }
         .marker-cluster-small div { background-color: rgba(255, 0, 85, 0.8); color: white; font-weight: bold; }
         .marker-cluster-medium { background-color: rgba(255, 0, 85, 0.6); }
@@ -81,11 +88,13 @@
 
     <div id="radio-player-bar">
         <div class="station-info">
-            <div class="station-name" id="current-station">請放大地圖找 🎵 圖示</div>
-            <div class="station-country" id="current-country">載入 1000+ 電台中...</div>
+            <div class="station-name" id="current-station">🎵 移動地圖以搜尋電台</div>
+            <div class="station-country" id="current-country">智慧搜尋模式</div>
         </div>
         <audio id="audio-player" controls autoplay playsinline></audio>
     </div>
+
+    <div id="loading-badge">📡 正在搜尋此區域電台...</div>
 
     <div id="world-map"></div>
 
@@ -102,7 +111,7 @@
         </div>
         <div id="chat-history">
             <div class="msg-sys">系統連線中...</div>
-            <div class="msg-sys" style="color: #ff0055;">★ 已過濾不可播放的電台，只顯示高音質 HTTPS 訊號源。</div>
+            <div class="msg-sys" style="color: #ff0055;">★ 智慧廣播：移動地圖，會自動載入當地的電台。</div>
         </div>
         <div id="input-area">
             <input type="text" id="msg-input" placeholder="輸入訊息..." autocomplete="off">
@@ -110,7 +119,8 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script> <script src="/socket.io/socket.io.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
 
     <script>
         var socket = io();
@@ -122,7 +132,6 @@
             else { panel.classList.add('minimized'); icon.innerText = "展開 ▲"; isMinimized = true; }
         }
 
-        // 初始化地圖
         var map = L.map('world-map', {
             minZoom: 2, maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 1.0, zoomControl: false 
         }).setView([25, 121], 3);
@@ -136,11 +145,11 @@
         var markers = {};
         var accuracyCircle = null;
         var firstLoad = true;
+        var loadedStationIds = new Set(); // 用來記錄已經載入過的電台 ID，避免重複
+        var searchTimeout = null;
 
-        // 使用 MarkerClusterGroup 來管理電台，不然 1000 個點會卡死
         var radioCluster = L.markerClusterGroup({
-            maxClusterRadius: 50, // 聚合半徑
-            disableClusteringAtZoom: 13 // 拉近到這個層級就全部展開
+            maxClusterRadius: 50, disableClusteringAtZoom: 13
         });
         map.addLayer(radioCluster);
 
@@ -150,18 +159,50 @@
             iconSize: [24, 24], iconAnchor: [12, 12]
         });
 
-        // 載入全球電台 (大升級：數量 1000 + 強制 HTTPS)
-        function loadRadioStations() {
-            // is_https=true : 只抓加密的 (解決無法播放問題)
-            // limit=1000 : 抓 1000 台
-            // order=clickcount : 抓熱門的
-            var apiUrl = "https://de1.api.radio-browser.info/json/stations/search?limit=1000&hidebroken=true&has_geo_info=true&is_https=true&order=clickcount&reverse=true";
-            
+        // --- 核心功能：智慧載入電台 ---
+        
+        // 1. 基礎載入：先抓全球最熱門的 500 個撐場面
+        function loadTopStations() {
+            fetch("https://de1.api.radio-browser.info/json/stations/search?limit=500&hidebroken=true&has_geo_info=true&is_https=true&order=clickcount&reverse=true")
+            .then(res => res.json())
+            .then(data => addStationsToMap(data));
+        }
+
+        // 2. 進階載入：根據地圖目前的「邊界 (Bounds)」去搜尋
+        function loadStationsInView() {
+            var bounds = map.getBounds();
+            var north = bounds.getNorth();
+            var south = bounds.getSouth();
+            var east = bounds.getEast();
+            var west = bounds.getWest();
+
+            // 顯示讀取中
+            document.getElementById('loading-badge').style.display = 'block';
+
+            // API 參數：只抓取這塊長方形區域內的 HTTPS 電台
+            // 限制 200 個以免當地太密集卡死
+            var apiUrl = `https://de1.api.radio-browser.info/json/stations/search?limit=200&hidebroken=true&is_https=true&lat_min=${south}&lat_max=${north}&long_min=${west}&long_max=${east}`;
+
             fetch(apiUrl)
-            .then(response => response.json())
+            .then(res => res.json())
             .then(stations => {
-                var count = 0;
-                stations.forEach(station => {
+                addStationsToMap(stations);
+                document.getElementById('loading-badge').style.display = 'none';
+                
+                if (stations.length > 0) {
+                    document.getElementById('current-country').innerText = `已在此區域發現 ${stations.length} 個電台`;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('loading-badge').style.display = 'none';
+            });
+        }
+
+        function addStationsToMap(stations) {
+            stations.forEach(station => {
+                // 如果這個電台已經加過，就跳過
+                if (!loadedStationIds.has(station.stationuuid)) {
                     if (station.geo_lat && station.geo_long) {
                         var marker = L.marker([station.geo_lat, station.geo_long], {icon: radioIcon})
                             .bindTooltip(station.name, { direction: 'top', className: 'radio-label', offset: [0, -12] });
@@ -170,36 +211,40 @@
                             playRadio(station.name, station.country, station.url_resolved);
                         });
                         radioCluster.addLayer(marker);
-                        count++;
+                        loadedStationIds.add(station.stationuuid);
                     }
-                });
-                document.getElementById('current-country').innerText = `已載入 ${count} 個可播放電台`;
-                addSystemMsg(`已更新 ${count} 個高音質電台訊號源 🎵`);
-            })
-            .catch(err => console.error("電台載入失敗", err));
+                }
+            });
         }
+
+        // 3. 監聽地圖移動事件：當使用者拖曳並「停下來」後才搜尋
+        map.on('moveend', function() {
+            // 清除之前的計時器 (防抖動 Debounce)
+            if (searchTimeout) clearTimeout(searchTimeout);
+            // 停下來 1 秒後才開始搜尋，避免移動中瘋狂發請求
+            searchTimeout = setTimeout(loadStationsInView, 1000);
+        });
+
+        // 一開始先載入熱門的
+        loadTopStations();
+        // -------------------------
 
         function playRadio(name, country, url) {
             var player = document.getElementById('audio-player');
             var nameDisplay = document.getElementById('current-station');
             var countryDisplay = document.getElementById('current-country');
-
             player.src = url;
             nameDisplay.innerText = "讀取中...";
-            
             player.play().then(() => {
                 nameDisplay.innerText = "🎵 " + name;
                 countryDisplay.innerText = country;
             }).catch(e => {
                 nameDisplay.innerText = "❌ 播放失敗";
-                countryDisplay.innerText = "此電台串流不穩定，請試試別台";
-                console.error(e);
+                countryDisplay.innerText = "此來源可能不支援 HTTPS";
             });
         }
 
-        loadRadioStations();
-
-        // --- 以下為定位與聊天核心 (維持不變) ---
+        // --- GPS 與聊天 ---
         window.onload = function() {
             if (navigator.geolocation) {
                 var options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
@@ -209,8 +254,13 @@
                         document.getElementById('gps-status').innerText = `(誤差${Math.round(acc)}m)`;
                         if (accuracyCircle) { accuracyCircle.setLatLng([lat, lng]); accuracyCircle.setRadius(acc); } 
                         else { accuracyCircle = L.circle([lat, lng], { color: '#007bff', fillColor: '#007bff', fillOpacity: 0.1, radius: acc }).addTo(map); }
-                        if (firstLoad) { initConnection(lat, lng); map.fitBounds(accuracyCircle.getBounds()); firstLoad = false; } 
-                        else { socket.emit('playerMove', { lat: lat, lng: lng }); }
+                        if (firstLoad) { 
+                            initConnection(lat, lng); 
+                            map.fitBounds(accuracyCircle.getBounds()); 
+                            firstLoad = false; 
+                            // 第一次定位到後，馬上搜尋該區域電台
+                            setTimeout(loadStationsInView, 1500); 
+                        } else { socket.emit('playerMove', { lat: lat, lng: lng }); }
                     },
                     (err) => { document.getElementById('gps-status').innerText = "(無訊號)"; if(firstLoad){ initConnection(20+Math.random()*10, 120+Math.random()*10); firstLoad=false; } },
                     options
