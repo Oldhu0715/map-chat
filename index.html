@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Radio Garden 2D (彩色版)</title>
+    <title>Radio Garden 2D (強力定位版)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
@@ -13,10 +13,10 @@
         body { margin: 0; padding: 0; font-family: "Segoe UI", sans-serif; background: #e5e3df; overflow: hidden; }
         #world-map { height: 100vh; width: 100%; background: #e5e3df; }
 
-        /* 1. 播放器 (維持黑色半透明風格，比較有質感) */
+        /* 1. 播放器 */
         #radio-player-bar {
             position: fixed; top: 0; left: 0; width: 100%; height: auto; min-height: 70px;
-            background: rgba(20, 20, 20, 0.9);
+            background: rgba(20, 20, 20, 0.95);
             border-bottom: 2px solid #00ffaa;
             display: flex; flex-direction: column; 
             padding: 10px; box-sizing: border-box;
@@ -51,7 +51,7 @@
 
         #loading-badge { position: fixed; bottom: 90px; right: 20px; background: rgba(0,0,0,0.8); color: #00ffaa; padding: 8px 15px; border-radius: 20px; font-size: 12px; z-index: 3000; border: 1px solid #00ffaa; }
 
-        /* 2. 聊天面板 (改回單純名字輸入) */
+        /* 2. 聊天面板 */
         #chat-panel {
             position: fixed; top: 110px; left: 20px; width: 320px; height: 50vh;
             background: rgba(0, 0, 0, 0.85);
@@ -82,24 +82,16 @@
         #input-area { display: flex; gap: 5px; }
         #msg-input { flex: 1; padding: 8px; border: none; border-radius: 4px; background: #333; color: white; font-size: 14px; }
 
-        /* 3. 地圖樣式 (Radio Garden 風格的點點，但在彩色地圖上加黑邊才清楚) */
+        /* 3. 地圖樣式 */
         .radio-dot { 
             background-color: #00ffaa; 
             width: 10px; height: 10px; 
             border-radius: 50%; 
-            border: 2px solid black; /* 加黑邊，在彩色地圖才看得到 */
+            border: 2px solid black; 
             box-shadow: 0 0 5px #00ffaa; 
         }
         .radio-label { background-color: rgba(0, 20, 10, 0.9); color: #00ffaa; border: 1px solid #00ffaa; font-size: 11px; padding: 2px 5px; border-radius: 4px; }
         
-        /* 玩家標記 (青色) */
-        .user-marker {
-            background-color: #00ffea;
-            width: 12px; height: 12px;
-            border-radius: 50%;
-            border: 2px solid black;
-            box-shadow: 0 0 8px #00ffea;
-        }
         .user-label { background-color: black; color: #00ffea; border: 1px solid #00ffea; font-size: 12px; font-weight: bold; padding: 2px 6px; border-radius: 4px; white-space: nowrap; text-align: center; }
 
         /* 聚合群組 */
@@ -158,7 +150,7 @@
         </div>
         <div id="chat-history">
             <div class="msg-sys">系統連線中...</div>
-            <div class="msg-sys" style="color: #ff0055;">★ 已載入全球電台資料庫。</div>
+            <div class="msg-sys" style="color: #ff0055;">★ 已恢復高精準定位與誤差顯示功能。</div>
         </div>
         <div id="input-area">
             <input type="text" id="msg-input" placeholder="輸入訊息..." autocomplete="off">
@@ -202,7 +194,7 @@
             else { panel.classList.add('minimized'); icon.innerText = "展開 ▲"; isMinimized = true; }
         }
 
-        // --- 地圖初始化 (使用 Google Maps 彩色) ---
+        // --- 地圖初始化 (Google 彩色) ---
         var map = L.map('world-map', {
             minZoom: 2, maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 1.0, zoomControl: false 
         }).setView([23.6, 121], 7);
@@ -214,23 +206,15 @@
         }).addTo(map);
 
         var markers = {};
-        var accuracyCircle = null;
+        var accuracyCircle = null; // 藍色誤差圈
         var firstLoad = true;
         var loadedStationIds = new Set();
         var radioCluster = L.markerClusterGroup({ maxClusterRadius: 50, disableClusteringAtZoom: 13 });
         map.addLayer(radioCluster);
 
-        // 電台綠點圖示
         var radioIcon = L.divIcon({
             className: 'custom-div-icon',
             html: "<div class='radio-dot'></div>",
-            iconSize: [10, 10], iconAnchor: [5, 5]
-        });
-
-        // 玩家藍點圖示
-        var userIcon = L.divIcon({
-            className: 'custom-user-icon',
-            html: "<div class='user-marker'></div>",
             iconSize: [12, 12], iconAnchor: [6, 6]
         });
 
@@ -306,12 +290,11 @@
             });
         }
 
-        // --- 混合載入 (Global + TW) ---
+        // --- 混合載入 ---
         async function loadHybridStations() {
             var badge = document.getElementById('loading-badge');
             badge.style.display = 'block';
             var seenIds = new Set();
-
             try {
                 let res1 = await fetch("https://de1.api.radio-browser.info/json/stations/search?limit=3500&hidebroken=true&has_geo_info=true&order=clickcount&reverse=true");
                 let gData = await res1.json();
@@ -329,7 +312,7 @@
             badge.style.display = 'none';
         }
 
-        // --- GPS 與聊天 ---
+        // --- GPS (強力定位模式) ---
         window.onload = function() {
             loadHybridStations(); 
 
@@ -338,14 +321,35 @@
                 navigator.geolocation.watchPosition(
                     (pos) => { 
                         var lat = pos.coords.latitude, lng = pos.coords.longitude, acc = pos.coords.accuracy;
+                        
+                        // 1. 更新標題上的誤差數值
                         document.getElementById('gps-status').innerText = `(誤差${Math.round(acc)}m)`;
-                        if (accuracyCircle) { accuracyCircle.setLatLng([lat, lng]); accuracyCircle.setRadius(acc); } 
-                        else { accuracyCircle = L.circle([lat, lng], { color: '#007bff', fillColor: '#007bff', fillOpacity: 0.1, radius: acc }).addTo(map); }
+                        
+                        // 2. 畫出/更新藍色誤差圈
+                        if (accuracyCircle) { 
+                            accuracyCircle.setLatLng([lat, lng]); 
+                            accuracyCircle.setRadius(acc); 
+                        } else { 
+                            accuracyCircle = L.circle([lat, lng], { color: '#007bff', fillColor: '#007bff', fillOpacity: 0.15, radius: acc }).addTo(map); 
+                        }
+                        
+                        // 3. 畫出自己的位置 (大藍點)
+                        if (!markers['me']) {
+                             markers['me'] = L.circleMarker([lat, lng], { 
+                                 color: 'white', radius: 8, fillColor: '#007bff', fillOpacity: 1, weight: 2 
+                             }).addTo(map).bindTooltip("我", {permanent:true, direction:'top', offset:[0,-10]});
+                        } else {
+                             markers['me'].setLatLng([lat, lng]);
+                        }
+
                         if (firstLoad) { 
                             socket.emit('reportLocation', { lat: lat, lng: lng });
                             addSystemMsg("連線成功");
+                            map.setView([lat, lng], 13); // 第一次定位飛過去
                             firstLoad = false; 
-                        } else { socket.emit('playerMove', { lat: lat, lng: lng }); }
+                        } else { 
+                            socket.emit('playerMove', { lat: lat, lng: lng }); 
+                        }
                     },
                     (err) => { document.getElementById('gps-status').innerText = "(無訊號)"; if(firstLoad){ socket.emit('reportLocation', { lat: 25.03, lng: 121.56 }); firstLoad=false; } },
                     options
@@ -368,22 +372,23 @@
         var input=document.getElementById('msg-input'); 
         input.addEventListener('keypress', function(e){ if(e.key==='Enter'&&input.value.trim()){ socket.emit('sendChat', input.value); input.value=""; } });
 
-        map.on('click', function(e) { socket.emit('playerMove', { lat: e.latlng.lat, lng: e.latlng.lng }); map.panTo(e.latlng); if(accuracyCircle){ accuracyCircle.setLatLng(e.latlng); accuracyCircle.setRadius(5); } });
+        map.on('click', function(e) { 
+            socket.emit('playerMove', { lat: e.latlng.lat, lng: e.latlng.lng }); 
+            // 手動移動時，誤差圈設為很小
+            if(accuracyCircle){ accuracyCircle.setLatLng(e.latlng); accuracyCircle.setRadius(2); }
+            if(markers['me']) markers['me'].setLatLng(e.latlng);
+        });
 
         socket.on('updateMap', function(u) { 
             for(var i in markers) { if(i!=='me') map.removeLayer(markers[i]); }
-            markers={}; 
+            
             for(var i in u) { 
                 if(i===socket.id) continue;
-                var m = L.marker([u[i].lat, u[i].lng], {icon: userIcon}).addTo(map);
+                // 其他玩家用青色圓點
+                var m = L.circleMarker([u[i].lat, u[i].lng], { color:'black', weight:1, radius:6, fillColor:'#00ffea', fillOpacity:0.9 }).addTo(map);
                 m.bindTooltip(u[i].name, { permanent:true, direction:'top', className:'user-label', offset:[0,-10] }); 
                 markers[i]=m; 
             } 
-            if(!markers['me'] && u[socket.id]) {
-                 markers['me'] = L.circleMarker([u[socket.id].lat, u[socket.id].lng], { color:'#00ffea', radius:6, fillOpacity:1 }).addTo(map);
-            } else if(markers['me'] && u[socket.id]) {
-                 markers['me'].setLatLng([u[socket.id].lat, u[socket.id].lng]);
-            }
         });
 
         socket.on('chatMessage', function(d) { 
@@ -394,7 +399,7 @@
         
         function addSystemMsg(t) { 
             var b=document.getElementById('chat-history'); 
-            b.innerHTML+=`<div class="msg"><span class="msg-sys">${t}</span></div>`; 
+            b.innerHTML+=`<div class="msg"><div class="msg-content"><span class="msg-sys">${t}</span></div></div>`; 
             b.scrollTop=b.scrollHeight; 
         }
     </script>
