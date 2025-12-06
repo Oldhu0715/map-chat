@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Radio Garden 2D (完美音量版)</title>
+    <title>Radio Garden 2D (強力定位版)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
@@ -29,8 +29,6 @@
         .station-country { font-size: 11px; color: #aaa; }
         
         .custom-controls { display: flex; align-items: center; gap: 15px; flex: 1; justify-content: flex-end; }
-        
-        /* 播放按鈕 */
         #play-pause-btn {
             background: none; border: 2px solid #00ffaa; color: #00ffaa;
             width: 35px; height: 35px; border-radius: 50%;
@@ -39,33 +37,14 @@
         }
         #play-pause-btn:hover { background: #00ffaa; color: black; }
 
-        /* 音量區域 */
         .volume-container { display: flex; align-items: center; gap: 8px; width: 120px; }
         .volume-icon { font-size: 14px; color: #ccc; width: 15px; text-align: center; }
-        
-        /* 音量拉桿美化 (Slider) */
-        input[type=range] {
-            -webkit-appearance: none; width: 100%; background: transparent; cursor: pointer;
-        }
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; cursor: pointer; }
         input[type=range]:focus { outline: none; }
-        
-        /* 軌道 (預設灰色，我們會用 JS 動態改變背景色來顯示進度) */
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%; height: 4px; border-radius: 2px;
-            background: #444; /* 預設底色 */
-        }
-        
-        /* 拉桿頭 */
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 14px; width: 14px; border-radius: 50%;
-            background: #00ffaa; margin-top: -5px; 
-            box-shadow: 0 0 5px #00ffaa;
-        }
-
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #444; border-radius: 2px; }
+        input[type=range]::-webkit-slider-thumb { height: 14px; width: 14px; border-radius: 50%; background: #00ffaa; -webkit-appearance: none; margin-top: -5px; box-shadow: 0 0 5px #00ffaa; }
         audio { display: none; }
 
-        /* 國家按鈕 */
         .country-buttons { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; width: 100%; scrollbar-width: none; }
         .c-btn { background: #222; border: 1px solid #444; color: #ddd; padding: 4px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
         .c-btn:hover { background: #333; border-color: #00ffaa; color: white; }
@@ -106,7 +85,10 @@
         /* 3. 地圖樣式 */
         .radio-dot { background-color: #00ffaa; width: 10px; height: 10px; border-radius: 50%; border: 2px solid black; box-shadow: 0 0 5px #00ffaa; }
         .radio-label { background-color: rgba(0, 20, 10, 0.9); color: #00ffaa; border: 1px solid #00ffaa; font-size: 11px; padding: 2px 5px; border-radius: 4px; }
+        
         .user-label { background-color: black; color: #00ffea; border: 1px solid #00ffea; font-size: 12px; font-weight: 900; padding: 2px 6px; border-radius: 4px; white-space: nowrap; text-align: center; }
+
+        /* 聚合群組 */
         .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(0, 255, 170, 0.6); }
         .marker-cluster div { background-color: rgba(0, 20, 10, 0.9); color: #00ffaa; font-weight: bold; border: 1px solid #00ffaa; border-radius: 50%; }
 
@@ -124,8 +106,8 @@
     <div id="radio-player-bar">
         <div class="player-row-1">
             <div class="station-info">
-                <div class="station-name" id="current-station">請點擊地圖綠點</div>
-                <div class="station-country" id="current-country">等待播放...</div>
+                <div class="station-name" id="current-station">請選擇電台</div>
+                <div class="station-country" id="current-country">準備就緒</div>
             </div>
             <div class="custom-controls">
                 <button id="play-pause-btn" onclick="togglePlay()"><i class="fas fa-play"></i></button>
@@ -162,7 +144,7 @@
         </div>
         <div id="chat-history">
             <div class="msg-sys">系統連線中...</div>
-            <div class="msg-sys" style="color: #ff0055;">★ 音量調整已優化，並移除自動播放以避免錯誤。</div>
+            <div class="msg-sys" style="color: #ff0055;">★ 已恢復定位自動導航功能。</div>
         </div>
         <div id="input-area">
             <input type="text" id="msg-input" placeholder="輸入訊息..." autocomplete="off">
@@ -176,16 +158,14 @@
     <script>
         var socket = io();
         
-        // --- 音量與播放控制 (修復版) ---
+        // --- 音量與播放控制 ---
         const audioPlayer = document.getElementById('audio-player');
         const playBtn = document.getElementById('play-pause-btn');
         const volSlider = document.getElementById('volume-slider');
         const volIcon = document.getElementById('vol-icon');
 
-        // 初始化音量背景顏色 (滿格)
         updateSliderBackground(1);
 
-        // 監聽音量拉桿
         volSlider.addEventListener('input', function(e) {
             const vol = e.target.value;
             audioPlayer.volume = vol;
@@ -193,17 +173,14 @@
             updateSliderBackground(vol);
         });
 
-        // 更新圖示
         function updateVolumeIcon(vol) {
             if(vol == 0) volIcon.className = "fas fa-volume-mute volume-icon";
             else if(vol < 0.5) volIcon.className = "fas fa-volume-down volume-icon";
             else volIcon.className = "fas fa-volume-up volume-icon";
         }
 
-        // 更新拉桿的綠色進度條背景
         function updateSliderBackground(vol) {
             const percentage = vol * 100;
-            // 這裡用 CSS 漸層來模擬進度條效果：左邊綠色，右邊灰色
             volSlider.style.background = `linear-gradient(to right, #00ffaa ${percentage}%, #444 ${percentage}%)`;
         }
 
@@ -255,7 +232,7 @@
         // --- 電台載入 ---
         function loadByCountry(code, name, latlng) {
             document.getElementById('loading-badge').style.display = 'block';
-            document.getElementById('current-country').innerText = `正在下載 ${name} 電台清單...`;
+            document.getElementById('current-country').innerText = `正在下載 ${name} 電台...`;
             if (latlng) map.setView(latlng, 7);
             radioCluster.clearLayers(); loadedStationIds.clear();
 
@@ -325,9 +302,8 @@
             });
         }
 
-        // --- GPS 與聊天 ---
+        // --- GPS 與聊天 (修正版：自動導航) ---
         window.onload = function() {
-            // 只載入地圖點點，不自動播放聲音！避免報錯
             setTimeout(() => loadByCountry('TW', '台灣', [23.6, 121]), 1000);
 
             if (navigator.geolocation) {
@@ -336,13 +312,29 @@
                     (pos) => { 
                         var lat = pos.coords.latitude, lng = pos.coords.longitude, acc = pos.coords.accuracy;
                         document.getElementById('gps-status').innerText = `(誤差${Math.round(acc)}m)`;
+                        
+                        // 1. 畫誤差圈
                         if (accuracyCircle) { accuracyCircle.setLatLng([lat, lng]); accuracyCircle.setRadius(acc); } 
                         else { accuracyCircle = L.circle([lat, lng], { color: '#007bff', fillColor: '#007bff', fillOpacity: 0.1, radius: acc }).addTo(map); }
+                        
+                        // 2. 畫自己的大藍點
+                        if (!markers['me']) {
+                             markers['me'] = L.circleMarker([lat, lng], { 
+                                 color: 'white', radius: 8, fillColor: '#007bff', fillOpacity: 1, weight: 2 
+                             }).addTo(map).bindTooltip("我", {permanent:true, direction:'top', offset:[0,-10]});
+                        } else {
+                             markers['me'].setLatLng([lat, lng]);
+                        }
+
+                        // 3. 第一次定位成功時，鏡頭飛過去
                         if (firstLoad) { 
                             socket.emit('reportLocation', { lat: lat, lng: lng });
                             addSystemMsg("連線成功");
+                            map.setView([lat, lng], 16); // 飛到使用者位置 (Zoom 16)
                             firstLoad = false; 
-                        } else { socket.emit('playerMove', { lat: lat, lng: lng }); }
+                        } else { 
+                            socket.emit('playerMove', { lat: lat, lng: lng }); 
+                        }
                     },
                     (err) => { document.getElementById('gps-status').innerText = "(無訊號)"; if(firstLoad){ socket.emit('reportLocation', { lat: 25.03, lng: 121.56 }); firstLoad=false; } },
                     options
@@ -369,23 +361,18 @@
             socket.emit('playerMove', { lat: e.latlng.lat, lng: e.latlng.lng }); 
             // 手動移動時把誤差圈縮小並移過去
             if(accuracyCircle){ accuracyCircle.setLatLng(e.latlng); accuracyCircle.setRadius(5); }
+            if(markers['me']) markers['me'].setLatLng(e.latlng);
         });
 
         socket.on('updateMap', function(u) { 
             for(var i in markers) { if(i!=='me') map.removeLayer(markers[i]); }
-            markers={}; 
+            
             for(var i in u) { 
                 if(i===socket.id) continue;
                 var m = L.circleMarker([u[i].lat, u[i].lng], { color:'cyan', radius:6, fillColor:'cyan', fillOpacity:0.8 }).addTo(map);
                 m.bindTooltip(u[i].name, { permanent:true, direction:'top', className:'user-label', offset:[0,-10] }); 
                 markers[i]=m; 
             } 
-            // 畫自己
-            if(!markers['me'] && u[socket.id]) {
-                 markers['me'] = L.circleMarker([u[socket.id].lat, u[socket.id].lng], { color:'#00ffea', radius:6, fillOpacity:1 }).addTo(map);
-            } else if(markers['me'] && u[socket.id]) {
-                 markers['me'].setLatLng([u[socket.id].lat, u[socket.id].lng]);
-            }
         });
 
         socket.on('chatMessage', function(d) { 
@@ -396,7 +383,7 @@
         
         function addSystemMsg(t) { 
             var b=document.getElementById('chat-history'); 
-            b.innerHTML+=`<div class="msg"><span class="msg-sys">${t}</span></div>`; 
+            b.innerHTML+=`<div class="msg"><div class="msg-content"><span class="msg-sys">${t}</span></div></div>`; 
             b.scrollTop=b.scrollHeight; 
         }
     </script>
