@@ -6,6 +6,7 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
 const fs = require('fs');
+const ogs = require('open-graph-scraper'); // 記得 npm install open-graph-scraper@5.2.3
 
 const port = process.env.PORT || 3000;
 
@@ -21,7 +22,7 @@ app.get('/radio-proxy', (req, res) => {
     const adapter = targetUrl.startsWith('https') ? https : http;
 
     const proxyReq = adapter.get(targetUrl, {
-        headers: { 'User-Agent': 'Mozilla/5.0' } // 偽裝成瀏覽器，避免被電台擋
+        headers: { 'User-Agent': 'Mozilla/5.0' }
     }, (stream) => {
         if (stream.statusCode === 301 || stream.statusCode === 302) {
             return res.redirect(stream.headers.location);
@@ -78,12 +79,31 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('sendChat', (msg) => {
+  // 聊天 (含連結預覽)
+  socket.on('sendChat', async (msg) => {
     if (users[socket.id]) {
+        let previewData = null;
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const urls = msg.match(urlRegex);
+
+        if (urls && urls.length > 0) {
+            try {
+                const { result } = await ogs({ url: urls[0], timeout: 2000 });
+                if (result.ogImage && result.ogImage.url) {
+                    previewData = {
+                        title: result.ogTitle || "連結預覽",
+                        image: result.ogImage.url,
+                        url: urls[0]
+                    };
+                }
+            } catch (err) { console.log("預覽抓取失敗"); }
+        }
+
         const msgData = { 
             id: socket.id, 
             name: users[socket.id].name, 
             text: msg, 
+            preview: previewData,
             isSystem: false, 
             time: new Date().getTime() 
         };
