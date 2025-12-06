@@ -21,7 +21,7 @@ app.get('/radio-proxy', (req, res) => {
     const adapter = targetUrl.startsWith('https') ? https : http;
 
     const proxyReq = adapter.get(targetUrl, {
-        headers: { 'User-Agent': 'Mozilla/5.0' }
+        headers: { 'User-Agent': 'Mozilla/5.0' } // 偽裝成瀏覽器，避免被電台擋
     }, (stream) => {
         if (stream.statusCode === 301 || stream.statusCode === 302) {
             return res.redirect(stream.headers.location);
