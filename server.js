@@ -6,7 +6,6 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
 const fs = require('fs');
-const ogs = require('open-graph-scraper'); // 記得 npm install open-graph-scraper@5.2.3
 
 const port = process.env.PORT || 3000;
 
@@ -79,31 +78,12 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 聊天 (含連結預覽)
-  socket.on('sendChat', async (msg) => {
+  socket.on('sendChat', (msg) => {
     if (users[socket.id]) {
-        let previewData = null;
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        const urls = msg.match(urlRegex);
-
-        if (urls && urls.length > 0) {
-            try {
-                const { result } = await ogs({ url: urls[0], timeout: 2000 });
-                if (result.ogImage && result.ogImage.url) {
-                    previewData = {
-                        title: result.ogTitle || "連結預覽",
-                        image: result.ogImage.url,
-                        url: urls[0]
-                    };
-                }
-            } catch (err) { console.log("預覽抓取失敗"); }
-        }
-
         const msgData = { 
             id: socket.id, 
             name: users[socket.id].name, 
             text: msg, 
-            preview: previewData,
             isSystem: false, 
             time: new Date().getTime() 
         };
