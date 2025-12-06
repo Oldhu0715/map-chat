@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Radio Garden 2D (完美音量版)</title>
+    <title>Radio Garden 2D (復古 Logo 版)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
@@ -29,8 +29,6 @@
         .station-country { font-size: 11px; color: #aaa; }
         
         .custom-controls { display: flex; align-items: center; gap: 15px; flex: 1; justify-content: flex-end; }
-        
-        /* 播放按鈕 */
         #play-pause-btn {
             background: none; border: 2px solid #00ffaa; color: #00ffaa;
             width: 35px; height: 35px; border-radius: 50%;
@@ -39,42 +37,24 @@
         }
         #play-pause-btn:hover { background: #00ffaa; color: black; }
 
-        /* 音量區域 */
         .volume-container { display: flex; align-items: center; gap: 8px; width: 120px; }
         .volume-icon { font-size: 14px; color: #ccc; width: 15px; text-align: center; }
-        
-        /* 音量拉桿美化 (Slider) */
-        input[type=range] {
-            -webkit-appearance: none; width: 100%; background: transparent; cursor: pointer;
-        }
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; cursor: pointer; }
         input[type=range]:focus { outline: none; }
-        
-        /* 軌道 (預設灰色，我們會用 JS 動態改變背景色來顯示進度) */
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%; height: 4px; border-radius: 2px;
-            background: #444; /* 預設底色 */
-        }
-        
-        /* 拉桿頭 */
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 14px; width: 14px; border-radius: 50%;
-            background: #00ffaa; margin-top: -5px; 
-            box-shadow: 0 0 5px #00ffaa;
-        }
-
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #444; border-radius: 2px; }
+        input[type=range]::-webkit-slider-thumb { height: 14px; width: 14px; border-radius: 50%; background: #00ffaa; -webkit-appearance: none; margin-top: -5px; box-shadow: 0 0 5px #00ffaa; }
         audio { display: none; }
 
-        /* 國家按鈕 */
         .country-buttons { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; width: 100%; scrollbar-width: none; }
         .c-btn { background: #222; border: 1px solid #444; color: #ddd; padding: 4px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
         .c-btn:hover { background: #333; border-color: #00ffaa; color: white; }
 
         #loading-badge { position: fixed; bottom: 90px; right: 20px; background: rgba(0,0,0,0.8); color: #00ffaa; padding: 8px 15px; border-radius: 20px; font-size: 12px; z-index: 3000; border: 1px solid #00ffaa; }
 
-        /* 2. 聊天面板 */
+        /* 2. 聊天面板 (高度增加以容納圖片) */
         #chat-panel {
-            position: fixed; top: 110px; left: 20px; width: 320px; height: 50vh;
+            position: fixed; top: 110px; left: 20px; width: 320px; 
+            height: 65vh; /* 增加高度 */
             background: rgba(0, 0, 0, 0.85);
             border-left: 4px solid #00ffea;
             padding: 10px; color: #ddd;
@@ -94,16 +74,39 @@
         #update-name-btn { background: #007bff; color: white; border: none; padding: 5px 10px; cursor: pointer; font-size: 12px;}
         
         #chat-history { flex: 1; overflow-y: auto; margin-bottom: 5px; font-size: 13px; }
-        .msg { margin-bottom: 4px; padding-bottom: 2px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .msg { margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .msg-name { color: #00ffea; font-weight: bold; }
-        .msg-text { color: white; }
+        .msg-text { color: white; display: block; margin-top: 2px; }
         .msg-sys { color: #aaa; font-style: italic; font-size: 11px; }
         .gps-info { font-size: 10px; color: #f39c12; margin-top: 2px; }
         
+        .link-preview { display: block; margin-top: 5px; background: #222; border: 1px solid #444; border-radius: 8px; overflow: hidden; text-decoration: none; color: white; transition: transform 0.2s; max-width: 250px; }
+        .link-preview:hover { transform: scale(1.02); border-color: #00ffaa; }
+        .preview-img { width: 100%; height: 120px; object-fit: cover; display: block; }
+        .preview-title { padding: 8px; font-size: 12px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #333; }
+
         #input-area { display: flex; gap: 5px; }
         #msg-input { flex: 1; padding: 8px; border: none; border-radius: 4px; background: #333; color: white; font-size: 14px; }
 
-        /* 3. 地圖樣式 */
+        /* 🔥 新增：頻道 Logo 區域樣式 🔥 */
+        #station-logo-container {
+            margin-top: 10px;
+            text-align: center;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+        }
+        #station-logo {
+            max-width: 100%;
+            height: auto;
+            max-height: 150px; /* 限制最大高度以免太佔位 */
+            border-radius: 8px;
+            border: 2px solid #444;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            transition: all 0.3s;
+        }
+        #station-logo:hover { border-color: #00ffaa; box-shadow: 0 0 15px rgba(0, 255, 170, 0.3); }
+
+        /* 3. 地圖樣式 (還原成點點) */
         .radio-dot { background-color: #00ffaa; width: 10px; height: 10px; border-radius: 50%; border: 2px solid black; box-shadow: 0 0 5px #00ffaa; }
         .radio-label { background-color: rgba(0, 20, 10, 0.9); color: #00ffaa; border: 1px solid #00ffaa; font-size: 11px; padding: 2px 5px; border-radius: 4px; }
         .user-label { background-color: black; color: #00ffea; border: 1px solid #00ffea; font-size: 12px; font-weight: 900; padding: 2px 6px; border-radius: 4px; white-space: nowrap; text-align: center; }
@@ -111,7 +114,7 @@
         .marker-cluster div { background-color: rgba(0, 20, 10, 0.9); color: #00ffaa; font-weight: bold; border: 1px solid #00ffaa; border-radius: 50%; }
 
         @media (max-width: 768px) {
-            #chat-panel { top: auto; left: 0; bottom: 0; width: 100%; height: 35vh; border-radius: 15px 15px 0 0; border-left: none; border-top: 4px solid #00ffea; }
+            #chat-panel { top: auto; left: 0; bottom: 0; width: 100%; height: 50vh; /* 手機版也加高 */ border-radius: 15px 15px 0 0; border-left: none; border-top: 4px solid #00ffea; }
             #chat-panel.minimized { height: 45px; overflow: hidden; }
             #toggle-icon { display: block; }
             #radio-player-bar { height: auto; }
@@ -124,8 +127,8 @@
     <div id="radio-player-bar">
         <div class="player-row-1">
             <div class="station-info">
-                <div class="station-name" id="current-station">請點擊地圖綠點</div>
-                <div class="station-country" id="current-country">等待播放...</div>
+                <div class="station-name" id="current-station">請選擇電台</div>
+                <div class="station-country" id="current-country">準備就緒</div>
             </div>
             <div class="custom-controls">
                 <button id="play-pause-btn" onclick="togglePlay()"><i class="fas fa-play"></i></button>
@@ -146,7 +149,7 @@
         </div>
     </div>
 
-    <div id="loading-badge">📡 正在載入地圖資料...</div>
+    <div id="loading-badge">📡 正在從資料庫撈取...</div>
     <div id="world-map"></div>
 
     <div id="chat-panel">
@@ -162,10 +165,14 @@
         </div>
         <div id="chat-history">
             <div class="msg-sys">系統連線中...</div>
-            <div class="msg-sys" style="color: #ff0055;">★ 音量調整已優化，並移除自動播放以避免錯誤。</div>
+            <div class="msg-sys" style="color: #ff0055;">★ 連結預覽功能已啟用。</div>
         </div>
         <div id="input-area">
-            <input type="text" id="msg-input" placeholder="輸入訊息..." autocomplete="off">
+            <input type="text" id="msg-input" placeholder="輸入訊息或貼上網址..." autocomplete="off">
+        </div>
+        
+        <div id="station-logo-container">
+            <img src="radio-avatar.jpg" id="station-logo" alt="Radio Station Logo" onerror="this.style.display='none'">
         </div>
     </div>
 
@@ -176,16 +183,14 @@
     <script>
         var socket = io();
         
-        // --- 音量與播放控制 (修復版) ---
+        // --- 音量與播放控制 ---
         const audioPlayer = document.getElementById('audio-player');
         const playBtn = document.getElementById('play-pause-btn');
         const volSlider = document.getElementById('volume-slider');
         const volIcon = document.getElementById('vol-icon');
 
-        // 初始化音量背景顏色 (滿格)
         updateSliderBackground(1);
 
-        // 監聽音量拉桿
         volSlider.addEventListener('input', function(e) {
             const vol = e.target.value;
             audioPlayer.volume = vol;
@@ -193,17 +198,14 @@
             updateSliderBackground(vol);
         });
 
-        // 更新圖示
         function updateVolumeIcon(vol) {
             if(vol == 0) volIcon.className = "fas fa-volume-mute volume-icon";
             else if(vol < 0.5) volIcon.className = "fas fa-volume-down volume-icon";
             else volIcon.className = "fas fa-volume-up volume-icon";
         }
 
-        // 更新拉桿的綠色進度條背景
         function updateSliderBackground(vol) {
             const percentage = vol * 100;
-            // 這裡用 CSS 漸層來模擬進度條效果：左邊綠色，右邊灰色
             volSlider.style.background = `linear-gradient(to right, #00ffaa ${percentage}%, #444 ${percentage}%)`;
         }
 
@@ -248,8 +250,8 @@
 
         var radioIcon = L.divIcon({
             className: 'custom-div-icon',
-            html: "<div style='background-color:#ff0055;width:24px;height:24px;border-radius:50%;display:flex;justify-content:center;align-items:center;border:2px solid white;box-shadow:0 0 5px black;font-size:12px;'>🎵</div>",
-            iconSize: [24, 24], iconAnchor: [12, 12]
+            html: "<div class='radio-dot'></div>",
+            iconSize: [12, 12], iconAnchor: [6, 6]
         });
 
         // --- 電台載入 ---
@@ -327,7 +329,6 @@
 
         // --- GPS 與聊天 ---
         window.onload = function() {
-            // 只載入地圖點點，不自動播放聲音！避免報錯
             setTimeout(() => loadByCountry('TW', '台灣', [23.6, 121]), 1000);
 
             if (navigator.geolocation) {
@@ -351,11 +352,10 @@
         };
 
         socket.on('yourNameIs', function(name) { document.getElementById('name-input').value = name; });
+        
         socket.on('history', function(h) { 
             var b = document.getElementById('chat-history');
-            h.forEach(d => {
-                b.innerHTML += `<div class="msg"><span class="${d.isSystem?'msg-sys':'msg-name'}">${d.isSystem?'':d.name+': '}${d.text}</span></div>`;
-            });
+            h.forEach(d => renderMessage(d));
             b.scrollTop = b.scrollHeight;
         });
         
@@ -367,7 +367,6 @@
 
         map.on('click', function(e) { 
             socket.emit('playerMove', { lat: e.latlng.lat, lng: e.latlng.lng }); 
-            // 手動移動時把誤差圈縮小並移過去
             if(accuracyCircle){ accuracyCircle.setLatLng(e.latlng); accuracyCircle.setRadius(5); }
         });
 
@@ -380,7 +379,6 @@
                 m.bindTooltip(u[i].name, { permanent:true, direction:'top', className:'user-label', offset:[0,-10] }); 
                 markers[i]=m; 
             } 
-            // 畫自己
             if(!markers['me'] && u[socket.id]) {
                  markers['me'] = L.circleMarker([u[socket.id].lat, u[socket.id].lng], { color:'#00ffea', radius:6, fillOpacity:1 }).addTo(map);
             } else if(markers['me'] && u[socket.id]) {
@@ -389,16 +387,32 @@
         });
 
         socket.on('chatMessage', function(d) { 
+             renderMessage(d);
              var b = document.getElementById('chat-history');
-             b.innerHTML += `<div class="msg"><span class="${d.isSystem?'msg-sys':'msg-name'}">${d.isSystem?'':d.name+': '}${d.text}</span></div>`;
              b.scrollTop = b.scrollHeight;
         });
         
-        function addSystemMsg(t) { 
-            var b=document.getElementById('chat-history'); 
-            b.innerHTML+=`<div class="msg"><span class="msg-sys">${t}</span></div>`; 
-            b.scrollTop=b.scrollHeight; 
+        function renderMessage(d) {
+            var b = document.getElementById('chat-history');
+            let content = `<span class="msg-text">${d.text}</span>`;
+            if (d.preview) {
+                content += `
+                <a href="${d.preview.url}" target="_blank" class="link-preview">
+                    <img src="${d.preview.image}" class="preview-img" onerror="this.style.display='none'">
+                    <div class="preview-title">${d.preview.title}</div>
+                </a>`;
+            }
+            if (d.isSystem) {
+                b.innerHTML += `<div class="msg"><span class="msg-sys">${d.text}</span></div>`;
+            } else {
+                b.innerHTML += `
+                <div class="msg">
+                    <div><span class="msg-name">${d.name}: </span>${content}</div>
+                </div>`;
+            }
         }
+        
+        function addSystemMsg(t) { renderMessage({isSystem: true, text: t}); }
     </script>
 </body>
 </html>
