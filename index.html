@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Radio Garden 2D (自訂控制版)</title>
+    <title>Radio Garden 2D (完美整合版)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
@@ -15,9 +15,9 @@
 
         /* 1. 播放器與控制列 */
         #radio-player-bar {
-            position: fixed; top: 0; left: 0; width: 100%; height: auto; min-height: 60px;
+            position: fixed; top: 0; left: 0; width: 100%; height: auto; min-height: 70px;
             background: rgba(20, 20, 20, 0.95);
-            border-bottom: 2px solid #ff0055;
+            border-bottom: 2px solid #00ffaa;
             display: flex; flex-direction: column; 
             padding: 10px; box-sizing: border-box;
             z-index: 3000; color: white;
@@ -30,53 +30,38 @@
         
         .custom-controls { display: flex; align-items: center; gap: 15px; flex: 1; justify-content: flex-end; }
         
-        /* --- 修改重點：播放按鈕改為亮藍色 --- */
+        /* 🔥 修改：播放按鈕為亮藍色 (#00eeff) 🔥 */
         #play-pause-btn {
             background: none; 
-            border: 2px solid #007bff; /* 藍色邊框 */
-            color: #007bff;            /* 藍色圖示 */
+            border: 2px solid #00eeff; 
+            color: #00eeff;
             width: 35px; height: 35px; border-radius: 50%;
             cursor: pointer; display: flex; align-items: center; justify-content: center;
             font-size: 14px; transition: all 0.2s;
         }
-        #play-pause-btn:hover { 
-            background: #007bff; /* 滑鼠移過去變藍底 */
-            color: white;        /* 字變白 */
-        }
+        #play-pause-btn:hover { background: #00eeff; color: black; box-shadow: 0 0 10px #00eeff; }
 
         /* 音量區域 */
         .volume-container { display: flex; align-items: center; gap: 8px; width: 120px; }
+        .volume-icon { font-size: 14px; color: #00eeff; width: 15px; text-align: center; } /* 藍色圖示 */
         
-        /* 修改：音量圖示改為淺藍色 */
-        .volume-icon { font-size: 14px; color: #007bff; width: 15px; text-align: center; }
-        
-        /* 音量拉桿美化 (Slider) */
-        input[type=range] {
-            -webkit-appearance: none; width: 100%; background: transparent; cursor: pointer;
-        }
+        /* 音量拉桿 */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; cursor: pointer; }
         input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #444; border-radius: 2px; }
         
-        /* 軌道 */
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%; height: 4px; border-radius: 2px;
-            background: #444; 
-        }
-        
-        /* 修改：拉桿頭改為亮藍色 */
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 14px; width: 14px; border-radius: 50%;
-            background: #007bff; /* 藍色 */
-            margin-top: -5px; 
-            box-shadow: 0 0 5px #007bff; /* 藍色陰影 */
+        /* 🔥 修改：拉桿頭為亮藍色 🔥 */
+        input[type=range]::-webkit-slider-thumb { 
+            height: 14px; width: 14px; border-radius: 50%; 
+            background: #00eeff; margin-top: -5px; 
+            box-shadow: 0 0 5px #00eeff; -webkit-appearance: none;
         }
 
         audio { display: none; }
 
-        /* 國家按鈕 */
         .country-buttons { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; width: 100%; scrollbar-width: none; }
         .c-btn { background: #222; border: 1px solid #444; color: #ddd; padding: 4px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
-        .c-btn:hover { background: #333; border-color: #007bff; color: white; } /* Hover 也改藍色 */
+        .c-btn:hover { background: #333; border-color: #00eeff; color: white; }
 
         #loading-badge { position: fixed; bottom: 90px; right: 20px; background: rgba(0,0,0,0.8); color: #00ffaa; padding: 8px 15px; border-radius: 20px; font-size: 12px; z-index: 3000; border: 1px solid #00ffaa; }
 
@@ -108,6 +93,12 @@
         .msg-sys { color: #aaa; font-style: italic; font-size: 11px; }
         .gps-info { font-size: 10px; color: #f39c12; margin-top: 2px; }
         
+        /* 連結預覽樣式 */
+        .link-preview { display: block; margin-top: 5px; background: #222; border: 1px solid #444; border-radius: 8px; overflow: hidden; text-decoration: none; color: white; transition: transform 0.2s; max-width: 250px; }
+        .link-preview:hover { transform: scale(1.02); border-color: #00ffaa; }
+        .preview-img { width: 100%; height: 120px; object-fit: cover; display: block; }
+        .preview-title { padding: 8px; font-size: 12px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #333; }
+
         #input-area { display: flex; gap: 5px; }
         #msg-input { flex: 1; padding: 8px; border: none; border-radius: 4px; background: #333; color: white; font-size: 14px; }
 
@@ -115,8 +106,21 @@
         .radio-dot { background-color: #00ffaa; width: 10px; height: 10px; border-radius: 50%; border: 2px solid black; box-shadow: 0 0 5px #00ffaa; }
         .radio-label { background-color: rgba(0, 20, 10, 0.9); color: #00ffaa; border: 1px solid #00ffaa; font-size: 11px; padding: 2px 5px; border-radius: 4px; }
         
-        .user-label { background-color: black; color: #00ffea; border: 1px solid #00ffea; font-size: 12px; font-weight: 900; padding: 2px 6px; border-radius: 4px; white-space: nowrap; text-align: center; }
+        /* 🔥 恢復：雷達波紋定位圖示 🔥 */
+        .gps-pulse-marker {
+            width: 20px; height: 20px; background-color: #007bff;
+            border: 3px solid white; border-radius: 50%;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5); position: relative;
+        }
+        .gps-pulse-marker::after {
+            content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 100%; height: 100%; border-radius: 50%;
+            background-color: rgba(0, 123, 255, 0.6);
+            animation: pulse 2s infinite; z-index: -1;
+        }
+        @keyframes pulse { 0% { width: 100%; height: 100%; opacity: 0.8; } 100% { width: 300%; height: 300%; opacity: 0; } }
 
+        .user-label { background-color: black; color: #00ffea; border: 1px solid #00ffea; font-size: 12px; font-weight: 900; padding: 2px 6px; border-radius: 4px; white-space: nowrap; text-align: center; }
         .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(0, 255, 170, 0.6); }
         .marker-cluster div { background-color: rgba(0, 20, 10, 0.9); color: #00ffaa; font-weight: bold; border: 1px solid #00ffaa; border-radius: 50%; }
 
@@ -156,7 +160,7 @@
         </div>
     </div>
 
-    <div id="loading-badge">📡 正在從資料庫撈取...</div>
+    <div id="loading-badge">📡 正在載入地圖資料...</div>
     <div id="world-map"></div>
 
     <div id="chat-panel">
@@ -172,7 +176,7 @@
         </div>
         <div id="chat-history">
             <div class="msg-sys">系統連線中...</div>
-            <div class="msg-sys" style="color: #ff0055;">★ 音量與播放控制已更新為藍色系。</div>
+            <div class="msg-sys" style="color: #00ffaa;">★ 定位系統已修復，雷達掃描中。</div>
         </div>
         <div id="input-area">
             <input type="text" id="msg-input" placeholder="輸入訊息..." autocomplete="off">
@@ -192,7 +196,6 @@
         const volSlider = document.getElementById('volume-slider');
         const volIcon = document.getElementById('vol-icon');
 
-        // 初始化背景色
         updateSliderBackground(1);
 
         volSlider.addEventListener('input', function(e) {
@@ -208,10 +211,10 @@
             else volIcon.className = "fas fa-volume-up volume-icon";
         }
 
-        // 修改：使用藍色漸層背景
+        // 藍色漸層背景
         function updateSliderBackground(vol) {
             const percentage = vol * 100;
-            volSlider.style.background = `linear-gradient(to right, #007bff ${percentage}%, #444 ${percentage}%)`;
+            volSlider.style.background = `linear-gradient(to right, #00eeff ${percentage}%, #444 ${percentage}%)`;
         }
 
         function togglePlay() {
@@ -257,6 +260,13 @@
             className: 'custom-div-icon',
             html: "<div style='background-color:#ff0055;width:24px;height:24px;border-radius:50%;display:flex;justify-content:center;align-items:center;border:2px solid white;box-shadow:0 0 5px black;font-size:12px;'>🎵</div>",
             iconSize: [24, 24], iconAnchor: [12, 12]
+        });
+
+        // 🔥 恢復：雷達圖示設定 🔥
+        var gpsIcon = L.divIcon({
+            className: 'custom-gps-icon',
+            html: "<div class='gps-pulse-marker'></div>",
+            iconSize: [20, 20], iconAnchor: [10, 10]
         });
 
         // --- 電台載入 ---
@@ -332,7 +342,7 @@
             });
         }
 
-        // --- GPS 與聊天 ---
+        // --- GPS 定位 (含鏡頭飛行 & 雷達圖示) ---
         window.onload = function() {
             setTimeout(() => loadByCountry('TW', '台灣', [23.6, 121]), 1000);
 
@@ -342,13 +352,28 @@
                     (pos) => { 
                         var lat = pos.coords.latitude, lng = pos.coords.longitude, acc = pos.coords.accuracy;
                         document.getElementById('gps-status').innerText = `(誤差${Math.round(acc)}m)`;
+                        
+                        // 1. 畫誤差圈
                         if (accuracyCircle) { accuracyCircle.setLatLng([lat, lng]); accuracyCircle.setRadius(acc); } 
                         else { accuracyCircle = L.circle([lat, lng], { color: '#007bff', fillColor: '#007bff', fillOpacity: 0.1, radius: acc }).addTo(map); }
+                        
+                        // 2. 🔥 使用雷達標記畫自己
+                        if (!markers['me']) {
+                             markers['me'] = L.marker([lat, lng], { icon: gpsIcon }).addTo(map)
+                                .bindTooltip("我", {permanent:true, direction:'top', className:'user-label', offset:[0,-10]});
+                        } else {
+                             markers['me'].setLatLng([lat, lng]);
+                        }
+
+                        // 3. 第一次飛過去
                         if (firstLoad) { 
                             socket.emit('reportLocation', { lat: lat, lng: lng });
                             addSystemMsg("連線成功");
+                            map.setView([lat, lng], 16); 
                             firstLoad = false; 
-                        } else { socket.emit('playerMove', { lat: lat, lng: lng }); }
+                        } else { 
+                            socket.emit('playerMove', { lat: lat, lng: lng }); 
+                        }
                     },
                     (err) => { document.getElementById('gps-status').innerText = "(無訊號)"; if(firstLoad){ socket.emit('reportLocation', { lat: 25.03, lng: 121.56 }); firstLoad=false; } },
                     options
@@ -359,9 +384,7 @@
         socket.on('yourNameIs', function(name) { document.getElementById('name-input').value = name; });
         socket.on('history', function(h) { 
             var b = document.getElementById('chat-history');
-            h.forEach(d => {
-                b.innerHTML += `<div class="msg"><span class="${d.isSystem?'msg-sys':'msg-name'}">${d.isSystem?'':d.name+': '}${d.text}</span></div>`;
-            });
+            h.forEach(d => renderMessage(d));
             b.scrollTop = b.scrollHeight;
         });
         
@@ -373,35 +396,37 @@
         map.on('click', function(e) { 
             socket.emit('playerMove', { lat: e.latlng.lat, lng: e.latlng.lng }); 
             if(accuracyCircle){ accuracyCircle.setLatLng(e.latlng); accuracyCircle.setRadius(5); }
+            if(markers['me']) markers['me'].setLatLng(e.latlng);
         });
 
+        // 🔥 更新地圖 (保留自己的雷達標記)
         socket.on('updateMap', function(u) { 
+            var myMarker = markers['me'];
             for(var i in markers) { if(i!=='me') map.removeLayer(markers[i]); }
             markers={}; 
+            if(myMarker) markers['me'] = myMarker;
+
             for(var i in u) { 
                 if(i===socket.id) continue;
                 var m = L.circleMarker([u[i].lat, u[i].lng], { color:'cyan', radius:6, fillColor:'cyan', fillOpacity:0.8 }).addTo(map);
                 m.bindTooltip(u[i].name, { permanent:true, direction:'top', className:'user-label', offset:[0,-10] }); 
                 markers[i]=m; 
             } 
-            if(!markers['me'] && u[socket.id]) {
-                 markers['me'] = L.circleMarker([u[socket.id].lat, u[socket.id].lng], { color:'#00ffea', radius:6, fillOpacity:1 }).addTo(map);
-            } else if(markers['me'] && u[socket.id]) {
-                 markers['me'].setLatLng([u[socket.id].lat, u[socket.id].lng]);
-            }
         });
 
-        socket.on('chatMessage', function(d) { 
-             var b = document.getElementById('chat-history');
-             b.innerHTML += `<div class="msg"><span class="${d.isSystem?'msg-sys':'msg-name'}">${d.isSystem?'':d.name+': '}${d.text}</span></div>`;
-             b.scrollTop = b.scrollHeight;
-        });
+        socket.on('chatMessage', function(d) { renderMessage(d); var b=document.getElementById('chat-history'); b.scrollTop=b.scrollHeight; });
         
-        function addSystemMsg(t) { 
-            var b=document.getElementById('chat-history'); 
-            b.innerHTML+=`<div class="msg"><div class="msg-content"><span class="msg-sys">${t}</span></div></div>`; 
-            b.scrollTop=b.scrollHeight; 
+        function renderMessage(d) {
+            var b = document.getElementById('chat-history');
+            let content = `<span class="msg-text">${d.text}</span>`;
+            if (d.preview) {
+                content += `<a href="${d.preview.url}" target="_blank" class="link-preview"><img src="${d.preview.image}" class="preview-img" onerror="this.style.display='none'"><div class="preview-title">${d.preview.title}</div></a>`;
+            }
+            if (d.isSystem) { b.innerHTML += `<div class="msg"><span class="msg-sys">${d.text}</span></div>`; } 
+            else { b.innerHTML += `<div class="msg"><div><span class="msg-name">${d.name}: </span>${content}</div></div>`; }
         }
+        
+        function addSystemMsg(t) { renderMessage({isSystem: true, text: t}); }
     </script>
 </body>
 </html>
