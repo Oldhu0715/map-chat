@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Radio Garden 2D (全功能整合版)</title>
+    <title>Radio Garden 2D (全功能修復版)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
@@ -168,7 +168,7 @@
         </div>
         <div id="chat-history">
             <div class="msg-sys">系統連線中...</div>
-            <div class="msg-sys" style="color: #00ffaa;">★ 所有功能已就緒 (語音/預覽/定位/電台)。</div>
+            <div class="msg-sys" style="color: #00ffaa;">★ 全功能版已啟動！點擊麥克風即可通話。</div>
         </div>
         <div id="input-area">
             <input type="text" id="msg-input" placeholder="輸入訊息..." autocomplete="off">
@@ -340,7 +340,7 @@
 
         // --- 4. GPS 與 Socket ---
         window.onload = function() {
-            loadByCountry('TW', '台灣', [23.6, 121]); // 立即載入，不延遲
+            loadByCountry('TW', '台灣', [23.6, 121]); 
 
             if (navigator.geolocation) {
                 var options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };

@@ -6,7 +6,6 @@ const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
 const fs = require('fs');
-// 記得確認 package.json 有 "open-graph-scraper": "5.2.3"
 const ogs = require('open-graph-scraper');
 
 const port = process.env.PORT || 3000;
