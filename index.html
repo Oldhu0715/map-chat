@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Radio Garden 2D (全功能終極版)</title>
+    <title>Radio Garden 2D (多人可視修復版)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
@@ -13,7 +13,7 @@
         body { margin: 0; padding: 0; font-family: "Segoe UI", sans-serif; background: #e5e3df; overflow: hidden; }
         #world-map { height: 100vh; width: 100%; background: #e5e3df; }
 
-        /* --- 介面樣式 --- */
+        /* 介面控制列 */
         #radio-player-bar {
             position: fixed; top: 0; left: 0; width: 100%; height: auto; min-height: 70px;
             background: rgba(20, 20, 20, 0.95);
@@ -30,7 +30,6 @@
         
         .custom-controls { display: flex; align-items: center; gap: 10px; flex: 1; justify-content: flex-end; }
         
-        /* 藍色按鈕 */
         .ctrl-btn {
             background: none; border: 2px solid #00eeff; color: #00eeff;
             width: 35px; height: 35px; border-radius: 50%;
@@ -39,7 +38,6 @@
         }
         .ctrl-btn:hover { background: #00eeff; color: black; box-shadow: 0 0 10px #00eeff; }
 
-        /* 麥克風按鈕狀態 */
         #mic-btn { border-color: #fff; color: #fff; position: relative; }
         #mic-btn.active { border-color: #00ffaa; color: #00ffaa; background: rgba(0, 255, 170, 0.1); animation: pulse-green 2s infinite; }
         #mic-btn.muted { border-color: #ff0055; color: #ff0055; }
@@ -51,8 +49,6 @@
         input[type=range]:focus { outline: none; }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #444; border-radius: 2px; }
         input[type=range]::-webkit-slider-thumb { height: 14px; width: 14px; border-radius: 50%; background: #00eeff; margin-top: -5px; box-shadow: 0 0 5px #00eeff; -webkit-appearance: none; }
-
-        audio { display: none; }
 
         .country-buttons { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; width: 100%; scrollbar-width: none; }
         .c-btn { background: #222; border: 1px solid #444; color: #ddd; padding: 4px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
@@ -88,13 +84,11 @@
         .msg-sys { color: #aaa; font-style: italic; font-size: 11px; }
         .gps-info { font-size: 10px; color: #f39c12; margin-top: 2px; }
         
-        /* 連結預覽 */
         .link-preview { display: block; margin-top: 5px; background: #222; border: 1px solid #444; border-radius: 8px; overflow: hidden; text-decoration: none; color: white; transition: transform 0.2s; max-width: 250px; }
         .link-preview:hover { transform: scale(1.02); border-color: #00ffaa; }
         .preview-img { width: 100%; height: 120px; object-fit: cover; display: block; }
         .preview-title { padding: 8px; font-size: 12px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #333; }
 
-        /* 表情符號按鈕 */
         #reaction-bar { display: flex; gap: 5px; margin-bottom: 5px; padding-top: 5px; border-top: 1px solid #333; }
         .emoji-btn { flex: 1; background: #222; border: 1px solid #444; color: white; border-radius: 4px; padding: 5px; cursor: pointer; font-size: 16px; transition: 0.2s; }
         .emoji-btn:hover { background: #444; transform: scale(1.1); }
@@ -102,16 +96,20 @@
         #input-area { display: flex; gap: 5px; }
         #msg-input { flex: 1; padding: 8px; border: none; border-radius: 4px; background: #333; color: white; font-size: 14px; }
 
-        /* 地圖樣式 */
+        /* 地圖點點與標籤 */
         .radio-dot { background-color: #00ffaa; width: 10px; height: 10px; border-radius: 50%; border: 2px solid black; box-shadow: 0 0 5px #00ffaa; }
         .radio-label { background-color: rgba(0, 20, 10, 0.9); color: #00ffaa; border: 1px solid #00ffaa; font-size: 11px; padding: 2px 5px; border-radius: 4px; }
         
-        /* 雷達圖示 */
+        /* 🔥 雷達樣式：自己 (藍色) 🔥 */
         .gps-pulse-marker { width: 20px; height: 20px; background-color: #007bff; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.5); position: relative; }
         .gps-pulse-marker::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; border-radius: 50%; background-color: rgba(0, 123, 255, 0.6); animation: pulse 2s infinite; z-index: -1; }
+        
+        /* 🔥 雷達樣式：別人 (青色/亮綠色) 🔥 */
+        .other-pulse-marker { width: 20px; height: 20px; background-color: #00ffaa; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.5); position: relative; }
+        .other-pulse-marker::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; border-radius: 50%; background-color: rgba(0, 255, 170, 0.6); animation: pulse 2s infinite; z-index: -1; }
+
         @keyframes pulse { 0% { width: 100%; height: 100%; opacity: 0.8; } 100% { width: 300%; height: 300%; opacity: 0; } }
 
-        /* 表情動畫 */
         .emoji-float { font-size: 24px; position: absolute; animation: floatUp 2.5s ease-out forwards; pointer-events: none; text-shadow: 0 0 5px black; }
         @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-60px) scale(1.5); opacity: 0; } }
 
@@ -172,16 +170,14 @@
         </div>
         <div id="chat-history">
             <div class="msg-sys">系統連線中...</div>
-            <div class="msg-sys" style="color: #00ffaa;">★ 全功能啟動：語音、表情、預覽皆已就緒。</div>
+            <div class="msg-sys" style="color: #00ffaa;">★ 你是藍色雷達，別人是青色雷達。</div>
         </div>
-        
         <div id="reaction-bar">
             <button class="emoji-btn" onclick="sendReaction('❤️')">❤️</button>
             <button class="emoji-btn" onclick="sendReaction('😂')">😂</button>
             <button class="emoji-btn" onclick="sendReaction('🔥')">🔥</button>
             <button class="emoji-btn" onclick="sendReaction('🎵')">🎵</button>
         </div>
-
         <div id="input-area">
             <input type="text" id="msg-input" placeholder="輸入訊息..." autocomplete="off">
         </div>
@@ -195,116 +191,47 @@
     <script>
         var socket = io();
         
-        // --- 1. 表情互動 (Map Reactions) ---
-        function sendReaction(emoji) {
-            socket.emit('sendReaction', emoji);
-        }
-
+        // --- 1. 表情互動 ---
+        function sendReaction(emoji) { socket.emit('sendReaction', emoji); }
         socket.on('showReaction', (data) => {
-            var icon = L.divIcon({
-                className: 'custom-emoji-icon',
-                html: `<div class='emoji-float'>${data.emoji}</div>`,
-                iconSize: [30, 30],
-                iconAnchor: [15, 15]
-            });
+            var icon = L.divIcon({ className: 'custom-emoji-icon', html: `<div class='emoji-float'>${data.emoji}</div>`, iconSize: [30, 30], iconAnchor: [15, 15] });
             var marker = L.marker([data.lat, data.lng], { icon: icon }).addTo(map);
             setTimeout(() => { map.removeLayer(marker); }, 2500);
         });
 
-        // --- 2. 音量與播放控制 ---
+        // --- 2. 音量與播放 ---
         const audioPlayer = document.getElementById('audio-player');
         const playBtn = document.getElementById('play-pause-btn');
         const volSlider = document.getElementById('volume-slider');
         const volIcon = document.getElementById('vol-icon');
-
         updateSliderBackground(1);
-
-        volSlider.addEventListener('input', function(e) {
-            const vol = e.target.value;
-            audioPlayer.volume = vol;
-            updateVolumeIcon(vol);
-            updateSliderBackground(vol);
-        });
-
-        function updateVolumeIcon(vol) {
-            if(vol == 0) volIcon.className = "fas fa-volume-mute volume-icon";
-            else if(vol < 0.5) volIcon.className = "fas fa-volume-down volume-icon";
-            else volIcon.className = "fas fa-volume-up volume-icon";
-        }
-
-        function updateSliderBackground(vol) {
-            const percentage = vol * 100;
-            volSlider.style.background = `linear-gradient(to right, #00eeff ${percentage}%, #444 ${percentage}%)`;
-        }
-
-        function togglePlay() {
-            if (audioPlayer.paused) { 
-                audioPlayer.play().catch(e => {
-                    console.log("播放失敗");
-                    document.getElementById('current-station').innerText = "請先選擇電台";
-                }); 
-            } 
-            else { audioPlayer.pause(); }
-        }
+        volSlider.addEventListener('input', function(e) { const vol = e.target.value; audioPlayer.volume = vol; updateVolumeIcon(vol); updateSliderBackground(vol); });
+        function updateVolumeIcon(vol) { if(vol == 0) volIcon.className = "fas fa-volume-mute volume-icon"; else if(vol < 0.5) volIcon.className = "fas fa-volume-down volume-icon"; else volIcon.className = "fas fa-volume-up volume-icon"; }
+        function updateSliderBackground(vol) { const percentage = vol * 100; volSlider.style.background = `linear-gradient(to right, #00eeff ${percentage}%, #444 ${percentage}%)`; }
+        function togglePlay() { if (audioPlayer.paused) { audioPlayer.play().catch(e => { console.log("播放失敗"); document.getElementById('current-station').innerText = "請先選擇電台"; }); } else { audioPlayer.pause(); } }
         audioPlayer.onplay = function() { playBtn.innerHTML = '<i class="fas fa-pause"></i>'; };
         audioPlayer.onpause = function() { playBtn.innerHTML = '<i class="fas fa-play"></i>'; };
 
-        // --- 3. 語音通話 (PeerJS) ---
-        let myPeer = null;
-        let myStream = null;
-        let peers = {};
-        let isVoiceActive = false;
+        // --- 3. 語音通話 ---
+        let myPeer = null, myStream = null, isVoiceActive = false;
         const micBtn = document.getElementById('mic-btn');
-
         function toggleVoice() {
             if (!isVoiceActive) {
                 micBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                 myPeer = new Peer(undefined, { host: '0.peerjs.com', port: 443, path: '/' });
-
                 myPeer.on('open', id => {
                     navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(stream => {
-                        myStream = stream;
-                        isVoiceActive = true;
-                        micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-                        micBtn.classList.add('active');
-                        micBtn.classList.remove('muted');
-                        addSystemMsg("已加入語音頻道。");
-                        socket.emit('join-voice', id);
-
-                        myPeer.on('call', call => {
-                            call.answer(stream);
-                            const audio = document.createElement('audio');
-                            call.on('stream', userAudioStream => { addAudioStream(audio, userAudioStream); });
-                        });
+                        myStream = stream; isVoiceActive = true;
+                        micBtn.innerHTML = '<i class="fas fa-microphone"></i>'; micBtn.classList.add('active'); micBtn.classList.remove('muted');
+                        addSystemMsg("已加入語音頻道。"); socket.emit('join-voice', id);
+                        myPeer.on('call', call => { call.answer(stream); const audio = document.createElement('audio'); call.on('stream', userAudioStream => { addAudioStream(audio, userAudioStream); }); });
                     }).catch(err => { alert("無法取得麥克風權限"); resetVoice(); });
                 });
             } else { resetVoice(); }
         }
-
-        socket.on('user-connected-voice', (userId) => {
-            if (myPeer && myStream) {
-                const call = myPeer.call(userId, myStream);
-                const audio = document.createElement('audio');
-                call.on('stream', userAudioStream => { addAudioStream(audio, userAudioStream); });
-                call.on('close', () => { audio.remove(); });
-                peers[userId] = call;
-            }
-        });
-
-        function addAudioStream(audio, stream) {
-            audio.srcObject = stream;
-            audio.addEventListener('loadedmetadata', () => { audio.play(); });
-            document.body.append(audio);
-        }
-
-        function resetVoice() {
-            if (myStream) myStream.getTracks().forEach(track => track.stop());
-            if (myPeer) myPeer.destroy();
-            isVoiceActive = false;
-            micBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
-            micBtn.classList.remove('active');
-            addSystemMsg("已離開語音頻道。");
-        }
+        socket.on('user-connected-voice', (userId) => { if (myPeer && myStream) { const call = myPeer.call(userId, myStream); const audio = document.createElement('audio'); call.on('stream', userAudioStream => { addAudioStream(audio, userAudioStream); }); call.on('close', () => { audio.remove(); }); } });
+        function addAudioStream(audio, stream) { audio.srcObject = stream; audio.addEventListener('loadedmetadata', () => { audio.play(); }); document.body.append(audio); }
+        function resetVoice() { if (myStream) myStream.getTracks().forEach(track => track.stop()); if (myPeer) myPeer.destroy(); isVoiceActive = false; micBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>'; micBtn.classList.remove('active'); addSystemMsg("已離開語音頻道。"); }
 
         // --- 4. 地圖與定位 ---
         var map = L.map('world-map', { minZoom: 2, maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 1.0, zoomControl: false }).setView([23.6, 121], 7);
@@ -320,6 +247,8 @@
 
         var radioIcon = L.divIcon({ className: 'custom-div-icon', html: "<div style='background-color:#ff0055;width:24px;height:24px;border-radius:50%;display:flex;justify-content:center;align-items:center;border:2px solid white;box-shadow:0 0 5px black;font-size:12px;'>🎵</div>", iconSize: [24, 24], iconAnchor: [12, 12] });
         var gpsIcon = L.divIcon({ className: 'custom-gps-icon', html: "<div class='gps-pulse-marker'></div>", iconSize: [20, 20], iconAnchor: [10, 10] });
+        // 🔥 其他人的圖示：青色雷達
+        var otherIcon = L.divIcon({ className: 'custom-other-icon', html: "<div class='other-pulse-marker'></div>", iconSize: [20, 20], iconAnchor: [10, 10] });
 
         function loadByCountry(code, name, latlng) {
             document.getElementById('loading-badge').style.display = 'block';
@@ -359,20 +288,14 @@
 
         window.onload = function() {
             loadByCountry('TW', '台灣', [23.6, 121]); 
-
             if (navigator.geolocation) {
                 var options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
                 navigator.geolocation.watchPosition((pos) => { 
                     var lat = pos.coords.latitude, lng = pos.coords.longitude, acc = pos.coords.accuracy;
                     document.getElementById('gps-status').innerText = `(誤差${Math.round(acc)}m)`;
-                    if (accuracyCircle) { accuracyCircle.setLatLng([lat, lng]); accuracyCircle.setRadius(acc); } 
-                    else { accuracyCircle = L.circle([lat, lng], { color: '#007bff', fillColor: '#007bff', fillOpacity: 0.1, radius: acc }).addTo(map); }
-                    
-                    if (!markers['me']) { markers['me'] = L.marker([lat, lng], { icon: gpsIcon }).addTo(map).bindTooltip("我", {permanent:true, direction:'top', className:'user-label', offset:[0,-10]}); } 
-                    else { markers['me'].setLatLng([lat, lng]); }
-
-                    if (firstLoad) { socket.emit('reportLocation', { lat: lat, lng: lng }); addSystemMsg("連線成功"); map.setView([lat, lng], 16); firstLoad = false; } 
-                    else { socket.emit('playerMove', { lat: lat, lng: lng }); }
+                    if (accuracyCircle) { accuracyCircle.setLatLng([lat, lng]); accuracyCircle.setRadius(acc); } else { accuracyCircle = L.circle([lat, lng], { color: '#007bff', fillColor: '#007bff', fillOpacity: 0.1, radius: acc }).addTo(map); }
+                    if (!markers['me']) { markers['me'] = L.marker([lat, lng], { icon: gpsIcon }).addTo(map).bindTooltip("我", {permanent:true, direction:'top', className:'user-label', offset:[0,-10]}); } else { markers['me'].setLatLng([lat, lng]); }
+                    if (firstLoad) { socket.emit('reportLocation', { lat: lat, lng: lng }); addSystemMsg("連線成功"); map.setView([lat, lng], 16); firstLoad = false; } else { socket.emit('playerMove', { lat: lat, lng: lng }); }
                 }, (err) => { document.getElementById('gps-status').innerText = "(無訊號)"; if(firstLoad){ socket.emit('reportLocation', { lat: 25.03, lng: 121.56 }); firstLoad=false; } }, options);
             } else { socket.emit('reportLocation', { lat: 25.03, lng: 121.56 }); }
         };
@@ -384,7 +307,19 @@
         var input=document.getElementById('msg-input'); input.addEventListener('keypress', function(e){ if(e.key==='Enter'&&input.value.trim()){ socket.emit('sendChat', input.value); input.value=""; } });
         map.on('click', function(e) { socket.emit('playerMove', { lat: e.latlng.lat, lng: e.latlng.lng }); if(accuracyCircle){ accuracyCircle.setLatLng(e.latlng); accuracyCircle.setRadius(5); } if(markers['me']) markers['me'].setLatLng(e.latlng); });
         
-        socket.on('updateMap', function(u) { var myMarker = markers['me']; for(var i in markers) { if(i!=='me') map.removeLayer(markers[i]); } markers={}; if(myMarker) markers['me'] = myMarker; for(var i in u) { if(i===socket.id) continue; var m = L.circleMarker([u[i].lat, u[i].lng], { color:'cyan', radius:6, fillColor:'cyan', fillOpacity:0.8 }).addTo(map); m.bindTooltip(u[i].name, { permanent:true, direction:'top', className:'user-label', offset:[0,-10] }); markers[i]=m; } });
+        // 🔥 更新地圖：自己用藍色，別人用青色
+        socket.on('updateMap', function(u) { 
+            var myMarker = markers['me'];
+            for(var i in markers) { if(i!=='me') map.removeLayer(markers[i]); }
+            markers={}; if(myMarker) markers['me'] = myMarker;
+            for(var i in u) { 
+                if(i===socket.id) continue;
+                // 改用 'otherIcon' (青色雷達)
+                var m = L.marker([u[i].lat, u[i].lng], { icon: otherIcon }).addTo(map);
+                m.bindTooltip(u[i].name, { permanent:true, direction:'top', className:'user-label', offset:[0,-10] }); 
+                markers[i]=m; 
+            } 
+        });
         
         socket.on('chatMessage', function(d) { renderMessage(d); var b=document.getElementById('chat-history'); b.scrollTop=b.scrollHeight; });
         function renderMessage(d) { var b = document.getElementById('chat-history'); let content = `<span class="msg-text">${d.text}</span>`; if (d.preview) { content += `<a href="${d.preview.url}" target="_blank" class="link-preview"><img src="${d.preview.image}" class="preview-img" onerror="this.style.display='none'"><div class="preview-title">${d.preview.title}</div></a>`; } if (d.isSystem) { b.innerHTML += `<div class="msg"><span class="msg-sys">${d.text}</span></div>`; } else { b.innerHTML += `<div class="msg"><div><span class="msg-name">${d.name}: </span>${content}</div></div>`; } }
