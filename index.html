@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Radio Garden 2D (全功能修復版)</title>
+    <title>Radio Garden 2D (社交互動版)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
@@ -39,13 +39,11 @@
         }
         .ctrl-btn:hover { background: #00eeff; color: black; box-shadow: 0 0 10px #00eeff; }
 
-        /* 麥克風按鈕 (語音通話) */
         #mic-btn { border-color: #fff; color: #fff; position: relative; }
         #mic-btn.active { border-color: #00ffaa; color: #00ffaa; background: rgba(0, 255, 170, 0.1); animation: pulse-green 2s infinite; }
         #mic-btn.muted { border-color: #ff0055; color: #ff0055; }
         @keyframes pulse-green { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 170, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(0, 255, 170, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 170, 0); } }
 
-        /* 音量區域 */
         .volume-container { display: flex; align-items: center; gap: 5px; width: 100px; }
         .volume-icon { font-size: 14px; color: #00eeff; width: 15px; text-align: center; }
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; cursor: pointer; }
@@ -63,7 +61,7 @@
 
         /* 2. 聊天面板 */
         #chat-panel {
-            position: fixed; top: 110px; left: 20px; width: 320px; height: 50vh;
+            position: fixed; top: 110px; left: 20px; width: 320px; height: 55vh; /* 稍微加高放表情 */
             background: rgba(0, 0, 0, 0.85);
             border-left: 4px solid #00ffea;
             padding: 10px; color: #ddd;
@@ -89,30 +87,44 @@
         .msg-sys { color: #aaa; font-style: italic; font-size: 11px; }
         .gps-info { font-size: 10px; color: #f39c12; margin-top: 2px; }
         
-        /* 連結預覽樣式 */
         .link-preview { display: block; margin-top: 5px; background: #222; border: 1px solid #444; border-radius: 8px; overflow: hidden; text-decoration: none; color: white; transition: transform 0.2s; max-width: 250px; }
         .link-preview:hover { transform: scale(1.02); border-color: #00ffaa; }
         .preview-img { width: 100%; height: 120px; object-fit: cover; display: block; }
         .preview-title { padding: 8px; font-size: 12px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #333; }
 
+        /* 🔥 表情符號列 🔥 */
+        #reaction-bar { display: flex; gap: 5px; margin-bottom: 5px; padding-top: 5px; border-top: 1px solid #333; }
+        .emoji-btn { flex: 1; background: #222; border: 1px solid #444; color: white; border-radius: 4px; padding: 5px; cursor: pointer; font-size: 16px; transition: 0.2s; }
+        .emoji-btn:hover { background: #444; transform: scale(1.1); }
+
         #input-area { display: flex; gap: 5px; }
         #msg-input { flex: 1; padding: 8px; border: none; border-radius: 4px; background: #333; color: white; font-size: 14px; }
 
-        /* 3. 地圖樣式 */
+        /* 地圖樣式 */
         .radio-dot { background-color: #00ffaa; width: 10px; height: 10px; border-radius: 50%; border: 2px solid black; box-shadow: 0 0 5px #00ffaa; }
         .radio-label { background-color: rgba(0, 20, 10, 0.9); color: #00ffaa; border: 1px solid #00ffaa; font-size: 11px; padding: 2px 5px; border-radius: 4px; }
         
-        /* 雷達定位圖示 */
         .gps-pulse-marker { width: 20px; height: 20px; background-color: #007bff; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.5); position: relative; }
         .gps-pulse-marker::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; border-radius: 50%; background-color: rgba(0, 123, 255, 0.6); animation: pulse 2s infinite; z-index: -1; }
         @keyframes pulse { 0% { width: 100%; height: 100%; opacity: 0.8; } 100% { width: 300%; height: 300%; opacity: 0; } }
+
+        /* 🔥 飄升動畫 🔥 */
+        .emoji-float {
+            font-size: 24px; position: absolute;
+            animation: floatUp 2.5s ease-out forwards;
+            pointer-events: none; text-shadow: 0 0 5px black;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-60px) scale(1.5); opacity: 0; }
+        }
 
         .user-label { background-color: black; color: #00ffea; border: 1px solid #00ffea; font-size: 12px; font-weight: 900; padding: 2px 6px; border-radius: 4px; white-space: nowrap; text-align: center; }
         .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(0, 255, 170, 0.6); }
         .marker-cluster div { background-color: rgba(0, 20, 10, 0.9); color: #00ffaa; font-weight: bold; border: 1px solid #00ffaa; border-radius: 50%; }
 
         @media (max-width: 768px) {
-            #chat-panel { top: auto; left: 0; bottom: 0; width: 100%; height: 35vh; border-radius: 15px 15px 0 0; border-left: none; border-top: 4px solid #00ffea; }
+            #chat-panel { top: auto; left: 0; bottom: 0; width: 100%; height: 40vh; border-radius: 15px 15px 0 0; border-left: none; border-top: 4px solid #00ffea; }
             #chat-panel.minimized { height: 45px; overflow: hidden; }
             #toggle-icon { display: block; }
             #radio-player-bar { height: auto; }
@@ -129,12 +141,8 @@
                 <div class="station-country" id="current-country">準備就緒</div>
             </div>
             <div class="custom-controls">
-                <button id="mic-btn" class="ctrl-btn" onclick="toggleVoice()" title="加入通話">
-                    <i class="fas fa-microphone-slash"></i>
-                </button>
-
+                <button id="mic-btn" class="ctrl-btn" onclick="toggleVoice()" title="加入通話"><i class="fas fa-microphone-slash"></i></button>
                 <button id="play-pause-btn" class="ctrl-btn" onclick="togglePlay()"><i class="fas fa-play"></i></button>
-                
                 <div class="volume-container">
                     <i class="fas fa-volume-up volume-icon" id="vol-icon"></i>
                     <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="1">
@@ -168,8 +176,16 @@
         </div>
         <div id="chat-history">
             <div class="msg-sys">系統連線中...</div>
-            <div class="msg-sys" style="color: #00ffaa;">★ 全功能版已啟動！點擊麥克風即可通話。</div>
+            <div class="msg-sys" style="color: #00ffaa;">★ 按下 ❤️ 給附近的人比愛心！</div>
         </div>
+        
+        <div id="reaction-bar">
+            <button class="emoji-btn" onclick="sendReaction('❤️')">❤️</button>
+            <button class="emoji-btn" onclick="sendReaction('😂')">😂</button>
+            <button class="emoji-btn" onclick="sendReaction('🔥')">🔥</button>
+            <button class="emoji-btn" onclick="sendReaction('🎵')">🎵</button>
+        </div>
+
         <div id="input-area">
             <input type="text" id="msg-input" placeholder="輸入訊息..." autocomplete="off">
         </div>
@@ -183,7 +199,28 @@
     <script>
         var socket = io();
         
-        // --- 1. 音量與播放控制 ---
+        // --- 1. 表情互動 (Map Reactions) ---
+        function sendReaction(emoji) {
+            socket.emit('sendReaction', emoji);
+        }
+
+        socket.on('showReaction', (data) => {
+            // 在地圖上該位置建立一個 DivIcon
+            var icon = L.divIcon({
+                className: 'custom-emoji-icon',
+                html: `<div class='emoji-float'>${data.emoji}</div>`,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15] // 讓它從中心飄起來
+            });
+            var marker = L.marker([data.lat, data.lng], { icon: icon }).addTo(map);
+
+            // 2.5秒後自動移除
+            setTimeout(() => {
+                map.removeLayer(marker);
+            }, 2500);
+        });
+
+        // --- 2. 音量與播放控制 ---
         const audioPlayer = document.getElementById('audio-player');
         const playBtn = document.getElementById('play-pause-btn');
         const volSlider = document.getElementById('volume-slider');
@@ -221,7 +258,7 @@
         audioPlayer.onplay = function() { playBtn.innerHTML = '<i class="fas fa-pause"></i>'; };
         audioPlayer.onpause = function() { playBtn.innerHTML = '<i class="fas fa-play"></i>'; };
 
-        // --- 2. 語音通話 (PeerJS) ---
+        // --- 3. 語音通話 (PeerJS) ---
         let myPeer = null;
         let myStream = null;
         let peers = {};
@@ -278,7 +315,7 @@
             addSystemMsg("已離開語音頻道。");
         }
 
-        // --- 3. 電台與地圖邏輯 ---
+        // --- 4. 電台與地圖邏輯 ---
         var isMinimized = false;
         function togglePanel() {
             var panel = document.getElementById('chat-panel');
@@ -301,7 +338,6 @@
         var radioIcon = L.divIcon({ className: 'custom-div-icon', html: "<div style='background-color:#ff0055;width:24px;height:24px;border-radius:50%;display:flex;justify-content:center;align-items:center;border:2px solid white;box-shadow:0 0 5px black;font-size:12px;'>🎵</div>", iconSize: [24, 24], iconAnchor: [12, 12] });
         var gpsIcon = L.divIcon({ className: 'custom-gps-icon', html: "<div class='gps-pulse-marker'></div>", iconSize: [20, 20], iconAnchor: [10, 10] });
 
-        // 極速載入 API (all.api)
         function loadByCountry(code, name, latlng) {
             document.getElementById('loading-badge').style.display = 'block';
             document.getElementById('current-country').innerText = `正在下載 ${name} 電台...`;
@@ -338,7 +374,7 @@
             audioPlayer.play().then(() => { nameDisplay.innerText = "🎵 " + name; countryDisplay.innerText = country; }).catch(e => { nameDisplay.innerText = "❌ 無法播放"; countryDisplay.innerText = "訊號源無回應"; });
         }
 
-        // --- 4. GPS 與 Socket ---
+        // --- 5. GPS 與 Socket ---
         window.onload = function() {
             loadByCountry('TW', '台灣', [23.6, 121]); 
 
